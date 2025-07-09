@@ -1,0 +1,145 @@
+-- 📦 Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.ResetOnSpawn = false
+screenGui.Name = "LoadingGui"
+
+-- Frame chính
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 260, 0, 190)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+local corner = Instance.new("UICorner", mainFrame)
+corner.CornerRadius = UDim.new(0, 16)
+
+-- Logo giữa
+local logo = Instance.new("ImageLabel", mainFrame)
+logo.Size = UDim2.new(0, 60, 0, 60)
+logo.Position = UDim2.new(0.5, -30, 0, 20)
+logo.AnchorPoint = Vector2.new(0.5, 0)
+logo.Image = "rbxassetid://7072718365"
+logo.BackgroundTransparency = 1
+
+-- Loading text
+local percentText = Instance.new("TextLabel", mainFrame)
+percentText.Size = UDim2.new(1, 0, 0, 30)
+percentText.Position = UDim2.new(0, 0, 0, 90)
+percentText.Text = "Loading... 0%"
+percentText.Font = Enum.Font.Gotham
+percentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+percentText.BackgroundTransparency = 1
+percentText.TextScaled = true
+
+-- Loading bar
+local loadingBarBack = Instance.new("Frame", mainFrame)
+loadingBarBack.Size = UDim2.new(0.8, 0, 0, 12)
+loadingBarBack.Position = UDim2.new(0.1, 0, 0, 130)
+loadingBarBack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+loadingBarBack.BorderSizePixel = 0
+Instance.new("UICorner", loadingBarBack).CornerRadius = UDim.new(0, 6)
+
+local loadingBar = Instance.new("Frame", loadingBarBack)
+loadingBar.Size = UDim2.new(0, 0, 1, 0)
+loadingBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+loadingBar.BorderSizePixel = 0
+Instance.new("UICorner", loadingBar).CornerRadius = UDim.new(0, 6)
+
+-- Result text
+local resultText = Instance.new("TextLabel", mainFrame)
+resultText.Size = UDim2.new(1, 0, 0, 30)
+resultText.Position = UDim2.new(0, 0, 1, -35)
+resultText.Text = ""
+resultText.Font = Enum.Font.GothamBold
+resultText.TextColor3 = Color3.fromRGB(255, 255, 255)
+resultText.BackgroundTransparency = 1
+resultText.TextScaled = true
+
+-- 🔁 Xoay logo
+task.spawn(function()
+	while logo and logo.Parent do
+		logo.Rotation += 5
+		task.wait(0.03)
+	end
+end)
+
+-- ❌ Nút đóng GUI
+local function createCloseButton()
+	local closeBtn = Instance.new("TextButton", mainFrame)
+	closeBtn.Size = UDim2.new(0, 24, 0, 24)
+	closeBtn.Position = UDim2.new(1, -28, 0, 4)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeBtn.Text = "X"
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeBtn.TextScaled = true
+	Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0)
+
+	closeBtn.MouseButton1Click:Connect(function()
+		TweenService:Create(mainFrame, TweenInfo.new(0.5), {
+			Size = UDim2.new(0, 0, 0, 0)
+		}):Play()
+		TweenService:Create(corner, TweenInfo.new(0.5), {
+			CornerRadius = UDim.new(1, 0)
+		}):Play()
+		task.wait(0.5)
+		screenGui:Destroy()
+	end)
+end
+
+-- Hiện ✓ hoặc X giữa GUI + phát âm thanh
+local function showResultIcon(success)
+	local icon = Instance.new("TextLabel", mainFrame)
+	icon.Size = UDim2.new(0, 60, 0, 60)
+	icon.Position = UDim2.new(0.5, 0, 0, 20)
+	icon.AnchorPoint = Vector2.new(0.5, 0)
+	icon.BackgroundColor3 = success and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+	icon.Text = success and "✓" or "X"
+	icon.Font = Enum.Font.GothamBold
+	icon.TextColor3 = Color3.new(1,1,1)
+	icon.TextScaled = true
+	Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
+	icon.BackgroundTransparency = 0
+
+	-- 🎵 Âm thanh kết quả
+	local sound = Instance.new("Sound", icon)
+	sound.SoundId = success and "rbxassetid://1584394759" or "rbxassetid://2979857617"
+	sound.Volume = 10
+	sound:Play()
+end
+
+-- ⏳ Loading tiến độ
+task.spawn(function()
+	for i = 1, 100 do
+		percentText.Text = "Loading... " .. i .. "%"
+		TweenService:Create(loadingBar, TweenInfo.new(0.05), {
+			Size = UDim2.new(i / 100, 0, 1, 0)
+		}):Play()
+		task.wait(0.05)
+	end
+
+	-- Xoá loading
+	loadingBarBack:Destroy()
+	percentText:Destroy()
+
+	resultText.Text = "Checking Game..."
+	task.wait(1)
+
+	if game.PlaceId == 10449761463 then
+		resultText.Text = "Find game"
+		showResultIcon(true)
+		createCloseButton()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/lalalaYQANTGV2.txt"))()
+	else
+		resultText.Text = "Can't find game"
+		showResultIcon(false)
+		createCloseButton()
+	end
+end)
