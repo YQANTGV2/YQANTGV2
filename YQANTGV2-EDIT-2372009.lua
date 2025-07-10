@@ -153,6 +153,10 @@ MainSection:AddToggle("Aura (Client)", false, function(state)
 	end
 end)
 
+MainSection:AddButton("Aura + animation by Stoopid", function()
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Aura"))()
+end)
+
 local player = game.Players.LocalPlayer
 local targetAnimationId = "rbxassetid://10470389827"
 
