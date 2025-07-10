@@ -1,5 +1,3 @@
--- 🔁 AutoFollowModule.lua (nội dung trong loadstring)
-
 if _G.AutoFollowInitialized then return end
 _G.AutoFollowInitialized = true
 
@@ -15,7 +13,8 @@ local animationIds = {
 }
 
 local lastTriggerTime = 0
-local activeConnection = nil
+local currentHumanoid
+local connection
 
 local function processAction()
 	local char = LocalPlayer.Character
@@ -44,25 +43,37 @@ local function onAnimationPlayed(hum, anim)
 		lastTriggerTime = now
 
 		task.delay(1.7, function()
-			processAction()
+			if _G.AutoFollowEnabled then
+				processAction()
+			end
 		end)
 	elseif table.find(animationIds, id) then
 		task.delay(0.31, function()
-			processAction()
+			if _G.AutoFollowEnabled then
+				processAction()
+			end
 		end)
 	end
 end
 
 local function connectHumanoid(char)
 	local hum = char:WaitForChild("Humanoid")
-	if activeConnection then activeConnection:Disconnect() end
-	activeConnection = hum.AnimationPlayed:Connect(function(anim)
+	if connection then connection:Disconnect() end
+	currentHumanoid = hum
+	connection = hum.AnimationPlayed:Connect(function(anim)
 		onAnimationPlayed(hum, anim)
 	end)
 end
 
--- Tự theo dõi
+-- Kết nối nhân vật hiện tại và sau này
 if LocalPlayer.Character then
 	connectHumanoid(LocalPlayer.Character)
 end
 LocalPlayer.CharacterAdded:Connect(connectHumanoid)
+
+-- Theo dõi trạng thái toggle (optional print)
+RunService.Heartbeat:Connect(function()
+	if _G.AutoFollowEnabled == nil then
+		_G.AutoFollowEnabled = false
+	end
+end)
