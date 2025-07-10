@@ -4,7 +4,7 @@ local NEVERLOSE = loadstring(game:HttpGet("https://you.whimper.xyz/sources/ronix
 
 NEVERLOSE:Theme("dark")
 
-local Window = NEVERLOSE:AddWindow("YQANTG Gui", "The Strongest Battleground")
+local Window = NEVERLOSE:AddWindow("YQANTG Gui", "Text")
 
 
 
@@ -154,6 +154,7 @@ MainSection:AddToggle("Aura (Client)", false, function(state)
 end)
 
 MainSection:AddButton("Aura + animation by Stoopid", function()
+
    loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Aura"))()
 end)
 
@@ -399,6 +400,260 @@ MainSection:AddToggle("Face Camera Y", false, function(enabled)
             hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + lookDir)
         end)
     end
+end)
+
+MainSection:AddToggle("Ultra Shader", false, function(state)
+	local Lighting = game:GetService("Lighting")
+	local Players = game:GetService("Players")
+	local Workspace = game:GetService("Workspace")
+	local RunService = game:GetService("RunService")
+	local Camera = Workspace.CurrentCamera
+
+	local LocalPlayer = Players.LocalPlayer
+	local shaderOn = state
+	local bloom, sunrays, cc, sky, atmo
+	local reflectionModel
+
+	local motionBlur = Instance.new("BlurEffect")
+	motionBlur.Name = "MotionBlur"
+	motionBlur.Size = 5
+	motionBlur.Parent = Lighting
+
+	local lastLookVector = Camera.CFrame.LookVector
+
+	local motionConnection = RunService.RenderStepped:Connect(function()
+		local currentLook = Camera.CFrame.LookVector
+		local delta = (currentLook - lastLookVector).Magnitude
+		lastLookVector = currentLook
+
+		local rightVector = Camera.CFrame.RightVector
+		local angleOffset = math.abs(currentLook:Dot(rightVector))
+		local blurAmount = math.clamp(angleOffset * delta * 800, 0, 40)
+
+		motionBlur.Size = shaderOn and (blurAmount + 4) or blurAmount
+	end)
+
+	local function setupSky()
+		sky = Instance.new("Sky", Lighting)
+		sky.SkyboxBk = "rbxassetid://7115316513"
+		sky.SkyboxDn = "rbxassetid://7115316904"
+		sky.SkyboxFt = "rbxassetid://7115317252"
+		sky.SkyboxLf = "rbxassetid://7115317606"
+		sky.SkyboxRt = "rbxassetid://7115317973"
+		sky.SkyboxUp = "rbxassetid://7115318319"
+		sky.SunAngularSize = 21
+		sky.MoonAngularSize = 11
+		sky.StarCount = 3000
+	end
+
+	local function setupLightAndHighlight(model)
+		if not model:IsA("Model") then return end
+		local root = model:FindFirstChild("HumanoidRootPart")
+
+		if not model:FindFirstChild("AutoHL") then
+			local hl = Instance.new("Highlight", model)
+			hl.Name = "AutoHL"
+			hl.FillColor = Color3.fromRGB(255, 255, 255)
+			hl.OutlineColor = Color3.new(0, 0, 0)
+			hl.OutlineTransparency = 0.5
+			hl.FillTransparency = 1
+		end
+
+		if root and not root:FindFirstChild("NightLight") then
+			local light = Instance.new("PointLight", root)
+			light.Name = "NightLight"
+			light.Color = Color3.new(1, 1, 0.9)
+			light.Range = 12
+			light.Brightness = 0
+			light.Enabled = true
+		end
+	end
+
+	local function applyShader()
+		Lighting.ClockTime = 17
+		Lighting.Brightness = 3
+		Lighting.GlobalShadows = true
+		Lighting.OutdoorAmbient = Color3.fromRGB(135, 148, 178)
+		Lighting.FogEnd = 800
+		Lighting.FogStart = 0
+		Lighting.FogColor = Color3.fromRGB(200, 220, 250)
+
+		setupSky()
+
+		bloom = Instance.new("BloomEffect", Lighting)
+		bloom.Intensity = 2.6
+		bloom.Size = 100
+		bloom.Threshold = 1
+
+		sunrays = Instance.new("SunRaysEffect", Lighting)
+		sunrays.Intensity = 0.55
+		sunrays.Spread = 2.2
+
+		cc = Instance.new("ColorCorrectionEffect", Lighting)
+		cc.Brightness = 0.18
+		cc.Contrast = 0.2
+		cc.Saturation = 0.3
+		cc.TintColor = Color3.fromRGB(255, 230, 180)
+
+		atmo = Instance.new("Atmosphere", Lighting)
+		atmo.Density = 0.30
+		atmo.Offset = 0.8
+		atmo.Glare = 0.3
+		atmo.Haze = 1.5
+		atmo.Color = Color3.fromRGB(200, 220, 255)
+		atmo.Decay = Color3.fromRGB(180, 190, 290)
+
+		local sun = Instance.new("Part")
+		sun.Name = "FakeSun"
+		sun.Size = Vector3.new(15, 15, 15)
+		sun.Shape = Enum.PartType.Ball
+		sun.Anchored = true
+		sun.CanCollide = true
+		sun.Material = Enum.Material.Neon
+		sun.Color = Color3.fromRGB(255, 240, 180)
+		sun.Position = Camera.CFrame.Position + Vector3.new(0, 300, 500)
+		sun.Parent = workspace
+
+		local light = Instance.new("SurfaceLight", sun)
+		light.Brightness = 3
+		light.Range = 100
+		light.Angle = 180
+		light.Face = Enum.NormalId.Top
+		light.Color = Color3.fromRGB(255, 220, 150)
+
+		local beam = Instance.new("ParticleEmitter", sun)
+		beam.LightEmission = 10
+		beam.LightInfluence = 10
+		beam.Texture = "rbxassetid://259703948"
+		beam.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 6), NumberSequenceKeypoint.new(1, 0)})
+		beam.Transparency = NumberSequence.new(0.1)
+		beam.Rate = 100
+		beam.Speed = NumberRange.new(0)
+		beam.Lifetime = NumberRange.new(1)
+		beam.Color = ColorSequence.new(Color3.fromRGB(255, 220, 150))
+
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+		reflectionModel = character:Clone()
+		reflectionModel.Name = "Reflection"
+		reflectionModel.Parent = workspace
+
+		for _, part in ipairs(reflectionModel:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+				part.CanCollide = false
+				part.Material = Enum.Material.SmoothPlastic
+				part.Transparency = 0.4
+			end
+		end
+
+		task.spawn(function()
+			while shaderOn and reflectionModel and reflectionModel.Parent do
+				local root = character:FindFirstChild("HumanoidRootPart")
+				local refRoot = reflectionModel:FindFirstChild("HumanoidRootPart")
+				if root and refRoot then
+					reflectionModel:SetPrimaryPartCFrame(CFrame.new(Vector3.new(root.Position.X, -root.Position.Y + 1, root.Position.Z)) * CFrame.Angles(math.rad(180), 0, 0))
+				end
+				task.wait(0.03)
+			end
+		end)
+
+		local function onCharacterAdded(char)
+			task.wait(1)
+			setupLightAndHighlight(char)
+		end
+
+		onCharacterAdded(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+		LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+		for _, model in pairs(workspace.Live:GetChildren()) do
+			setupLightAndHighlight(model)
+			model.AncestryChanged:Connect(function()
+				if model:IsDescendantOf(workspace) then
+					task.wait(1)
+					setupLightAndHighlight(model)
+				end
+			end)
+		end
+
+		workspace.Live.ChildAdded:Connect(function(model)
+			task.wait(1)
+			setupLightAndHighlight(model)
+		end)
+	end
+
+	local function removeShader()
+		Lighting.ClockTime = 10
+		Lighting.Brightness = 1.2
+		Lighting.FogEnd = 100000
+		Lighting.GlobalShadows = true
+		Lighting.OutdoorAmbient = Color3.fromRGB(128, 118, 148)
+
+		for _, v in pairs(Lighting:GetChildren()) do
+			if v:IsA("BloomEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect")
+			or v:IsA("Sky") or v:IsA("Atmosphere") then
+				v:Destroy()
+			end
+		end
+
+		if workspace:FindFirstChild("FakeSun") then
+			workspace.FakeSun:Destroy()
+		end
+		if reflectionModel then
+			reflectionModel:Destroy()
+		end
+	end
+
+	if shaderOn then
+		applyShader()
+	else
+		removeShader()
+	end
+
+	task.spawn(function()
+		while shaderOn do
+			for _, model in pairs(workspace.Live:GetChildren()) do
+				if model:IsA("Model") then
+					local hl = model:FindFirstChild("AutoHL")
+					local root = model:FindFirstChild("HumanoidRootPart")
+					local light = root and root:FindFirstChild("NightLight")
+					local isNight = Lighting.ClockTime >= 18 or Lighting.ClockTime < 6
+
+					if hl then
+						hl.FillTransparency = isNight and math.clamp(hl.FillTransparency - 0.05, 0.1, 1) or math.clamp(hl.FillTransparency + 0.05, 0.1, 1)
+						hl.OutlineTransparency = isNight and math.clamp(hl.OutlineTransparency - 0.05, 0.1, 1) or math.clamp(hl.OutlineTransparency + 0.05, 0.1, 1)
+					end
+
+					if light then
+						light.Brightness = isNight and math.clamp(light.Brightness + 0.1, 0, 2) or math.clamp(light.Brightness - 0.1, 0, 2)
+					end
+				end
+			end
+
+			local char = LocalPlayer.Character
+			if char then setupLightAndHighlight(char) end
+
+			task.wait(0.3)
+		end
+	end)
+
+	task.spawn(function()
+		local phase = 0
+		local clockValues = {5, 8, 12, 15, 18, 20, 23, 1}
+		local phaseTime = 30
+
+		while shaderOn do
+			local target = clockValues[(phase % #clockValues) + 1]
+			local nextTarget = clockValues[((phase + 1) % #clockValues) + 1]
+
+			for t = 0, 1, 1 / (phaseTime * 10) do
+				local smooth = target + (nextTarget - target) * t
+				Lighting.ClockTime = smooth
+				task.wait(0.1)
+			end
+
+			phase += 1
+		end
+	end)
 end)
 
 local MainTab = Window:AddTab("Esp", "folder")
@@ -1131,8 +1386,19 @@ MainSection:AddButton("Tornado Tech", function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Idk%20lolololol"))()
 end)
 
+MainSection:AddButton("Oreo Rework", function()
+
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Oreo%20rework"))()
+
+end)
+
 MainSection:AddButton("Supa Tech", function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Supa%20tech%20script"))()
+end)
+
+MainSection:AddButton("Supa Tech V2", function()
+
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/TEST"))()
 end)
 
 MainSection:AddButton("BackDash (Mobile)", function()
@@ -1231,16 +1497,15 @@ end)
 local TweenService = game:GetService("TweenService")
 local player = game.Players.LocalPlayer
 local cam = workspace.CurrentCamera
-
-local animationId1 = "rbxassetid://13294471966"
-local animationId2 = "rbxassetid://13532604085"
-
+local animationId = "rbxassetid://13294471966"
 local debounce = false
 local animConnection
 local charConnection
 
--- Gửi remote dash + hiệu ứng xoay trái phải
+-- Swipe và Dash
 local function swipeAndDash()
+	print("✅ Swipe + Dash Triggered")
+
 	local args = {
 		[1] = {
 			["Dash"] = Enum.KeyCode.W,
@@ -1257,32 +1522,30 @@ local function swipeAndDash()
 	local leftCFrame = startCFrame * CFrame.Angles(40, math.rad(-90), 180)
 
 	cam.CameraType = Enum.CameraType.Scriptable
-	local tween1 = TweenService:Create(cam, TweenInfo.new(0.1), {CFrame = leftCFrame})
+	local tween1 = TweenService:Create(cam, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {CFrame = leftCFrame})
 	tween1:Play()
 	tween1.Completed:Wait()
 
-	task.wait(0.00001)
-	local tween2 = TweenService:Create(cam, TweenInfo.new(0.001), {CFrame = startCFrame})
+	wait(0.00001)
+	local tween2 = TweenService:Create(cam, TweenInfo.new(0.001, Enum.EasingStyle.Sine), {CFrame = startCFrame})
 	tween2:Play()
 	tween2.Completed:Wait()
 
-	task.wait(0.1)
-	local angled = startCFrame * CFrame.Angles(math.rad(-6), math.rad(20), 0)
-	local tween3 = TweenService:Create(cam, TweenInfo.new(0.0001), {CFrame = angled})
+	wait(0.1)
+	local angledCFrame = startCFrame * CFrame.Angles(math.rad(-6), math.rad(20), 0)
+	local tween3 = TweenService:Create(cam, TweenInfo.new(0.0001, Enum.EasingStyle.Sine), {CFrame = angledCFrame})
 	tween3:Play()
 	tween3.Completed:Wait()
 
 	cam.CameraType = Enum.CameraType.Custom
 end
 
--- Gắn phát hiện animation
+-- Theo dõi animation
 local function bindAnimator(animator)
 	animConnection = animator.AnimationPlayed:Connect(function(track)
-		if not track.Animation then return end
-		local animId = track.Animation.AnimationId
-
-		if animId == animationId1 and not debounce then
+		if track.Animation and track.Animation.AnimationId == animationId and not debounce then
 			debounce = true
+			print("🎬 Phát hiện animation:", animationId)
 
 			local char = player.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1296,21 +1559,11 @@ local function bindAnimator(animator)
 				wait(5)
 				debounce = false
 			end)
-
-		elseif animId == animationId2 then
-			local char = player.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local angle = math.rad(10.7)
-				local rotateY = CFrame.Angles(0, angle, 0)
-				hrp.CFrame = hrp.CFrame * rotateY
-				cam.CFrame = cam.CFrame * rotateY
-			end
 		end
 	end)
 end
 
--- Theo dõi character mới và animator mới
+-- Theo dõi nhân vật
 local function monitorCharacter()
 	local char = player.Character or player.CharacterAdded:Wait()
 	local humanoid = char:WaitForChild("Humanoid")
@@ -1327,7 +1580,7 @@ local function monitorCharacter()
 	end
 end
 
--- ✅ Gắn đúng toggle chuẩn Orion (MainSection)
+-- 🔘 Gắn Toggle mới
 MainSection:AddToggle("Instant Twisted", false, function(state)
 	if state then
 		monitorCharacter()
@@ -1666,7 +1919,7 @@ MainSection:AddToggle("Skill4 + Dash ( Saitama )", false, function(state)
 
 		dashConnection = Humanoid.AnimationPlayed:Connect(function(track)
 			if track.Animation and track.Animation.AnimationId == animationId then
-				task.delay(0.9, function()
+				task.delay(1, function()
 					if track.IsPlaying then
 						FireDashRemote()
 					end
@@ -2102,6 +2355,16 @@ MainSection:AddToggle("Auto Whirlwind Dunk", false, function(isEnabled)
 			end
 		end)
 	end
+end)
+
+local MainTab = Window:AddTab("Auto Farm", "list")
+
+local MainSection = MainTab:AddSection("Auto Farm", "left")
+
+
+MainSection:AddButton("Comming Soon...", function()
+
+   print("")
 end)
 
 local MainTab = Window:AddTab("Server", "earth")
