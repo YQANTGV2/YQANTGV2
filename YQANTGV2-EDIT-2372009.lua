@@ -63,9 +63,16 @@ local MainTab = Window:AddTab("Local", "folder")
 local MainSection = MainTab:AddSection("Local", "left")
 
 MainSection:AddButton("Fov", function()
-
    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Kakuwhwbbanab"))()
+end)
 
+
+MainSection:AddButton("Aura + animation by Stoopid", function()
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Aura"))()
+end)
+
+MainSection:AddButton("Goku Miui", function()
+ loadstring(game:HttpGet("https://raw.githubusercontent.com/IdkRandomUsernameok/PublicAssets/refs/heads/main/Releases/MUI.lua"))()
 end)
 
 local player = game.Players.LocalPlayer
@@ -151,11 +158,6 @@ MainSection:AddToggle("Aura (Client)", false, function(state)
 	else
 		disableAura()
 	end
-end)
-
-MainSection:AddButton("Aura + animation by Stoopid", function()
-
-   loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Aura"))()
 end)
 
 local player = game.Players.LocalPlayer
