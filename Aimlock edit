@@ -1,0 +1,285 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+getgenv().KeyBind = getgenv().KeyBind or Enum.KeyCode.Q
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Thông báo mở đầu
+local function showNotification()
+	local sound = Instance.new("Sound", SoundService)
+	sound.SoundId = "rbxassetid://3442983711"
+	sound.Volume = 10
+	sound:Play()
+
+	StarterGui:SetCore("SendNotification", {
+		Title = "The Strongest Battleground",
+		Text = "Aimlock Script By YQANTG",
+		Duration = 5
+	})
+
+	task.delay(5, function()
+		if sound then sound:Destroy() end
+	end)
+end
+
+showNotification()
+
+-- Màu random cho player
+local randomColors = {
+	Color3.fromRGB(255, 0, 0), Color3.fromRGB(255, 100, 100),
+	Color3.fromRGB(0, 255, 0), Color3.fromRGB(100, 255, 100),
+	Color3.fromRGB(0, 0, 255), Color3.fromRGB(100, 100, 255),
+	Color3.fromRGB(255, 255, 0), Color3.fromRGB(255, 255, 150),
+	Color3.fromRGB(255, 0, 255), Color3.fromRGB(200, 150, 255)
+}
+
+-- Highlight và NameTag
+local activeHighlight = nil
+local activeBillboard = nil
+
+local function showNameTag(model, color)
+	if activeBillboard then activeBillboard:Destroy() end
+	local head = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")
+	if not head then return end
+
+	local billboard = Instance.new("BillboardGui", head)
+	billboard.Name = "AimlockName"
+	billboard.Size = UDim2.new(0, 200, 0, 40)
+	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+	billboard.AlwaysOnTop = true
+
+	local textLabel = Instance.new("TextLabel", billboard)
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = model.Name
+	textLabel.TextColor3 = color
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.GothamBold
+
+	activeBillboard = billboard
+end
+
+local function highlightTarget(model, isPlayer)
+	if activeHighlight then activeHighlight:Destroy() end
+	local hl = Instance.new("Highlight", model)
+	hl.FillTransparency = 1
+	hl.OutlineTransparency = 0
+	local color = isPlayer and randomColors[math.random(#randomColors)] or Color3.fromRGB(255, 255, 0)
+	hl.OutlineColor = color
+	activeHighlight = hl
+	showNameTag(model, color)
+end
+
+local function clearHighlight()
+	if activeHighlight then activeHighlight:Destroy() end
+	if activeBillboard then activeBillboard:Destroy() end
+	activeHighlight = nil
+	activeBillboard = nil
+end
+
+-- Hiện GUI sau 5s
+task.delay(5, function()
+	local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+	gui.ResetOnSpawn = false
+
+	local toggle = Instance.new("TextButton", gui)
+	toggle.Size = UDim2.new(0, 140, 0, 45)
+	toggle.Position = UDim2.new(1.2, 0, 0.85, 0)
+	toggle.Text = "Aimlock: OFF"
+	toggle.TextColor3 = Color3.new(1, 1, 1)
+	toggle.TextScaled = true
+	toggle.Font = Enum.Font.GothamBold
+	toggle.AutoButtonColor = false
+	toggle.BackgroundTransparency = 1
+	toggle.Active = true
+	toggle.Draggable = true
+
+	local corner = Instance.new("UICorner", toggle)
+	corner.CornerRadius = UDim.new(1, 0)
+
+	local bg = Instance.new("Frame", toggle)
+	bg.Size = UDim2.new(1, 0, 1, 0)
+	bg.Position = UDim2.new(0, 0, 0, 0)
+	bg.BackgroundTransparency = 0
+	bg.ZIndex = -1
+
+	local bgCorner = Instance.new("UICorner", bg)
+	bgCorner.CornerRadius = UDim.new(1, 0)
+
+	local gradient = Instance.new("UIGradient", bg)
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 0, 255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 200, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
+	}
+	gradient.Rotation = 45
+
+	local stroke = Instance.new("UIStroke", toggle)
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Transparency = 0.5
+
+	TweenService:Create(toggle, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+		Position = UDim2.new(0.4, 0, 0.85, 0)
+	}):Play()
+
+	local aimlockActive = false
+	local lockedTarget = nil
+	local lockedIsPlayer = false
+
+	local function getTargetInFront()
+		local char = LocalPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return nil end
+
+		local live = workspace:FindFirstChild("Live")
+		if not live then return nil end
+
+		local camDir = Camera.CFrame.LookVector
+		local bestTarget, smallestAngle = nil, 30
+
+		for _, model in ipairs(live:GetChildren()) do
+			if model:IsA("Model") and model ~= char then
+				local part = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head")
+				local hum = model:FindFirstChild("Humanoid")
+				if part and hum and hum.Health > 0 then
+					local dir = (part.Position - Camera.CFrame.Position).Unit
+					local angle = math.deg(math.acos(camDir:Dot(dir)))
+					if angle < smallestAngle then
+						bestTarget = model
+						smallestAngle = angle
+					end
+				end
+			end
+		end
+
+		return bestTarget
+	end
+
+	RunService.Stepped:Connect(function()
+		if aimlockActive and lockedTarget then
+			local head = lockedTarget:FindFirstChild("Head") or lockedTarget:FindFirstChild("HumanoidRootPart")
+			if head and head:IsA("BasePart") then
+				local camPos = Camera.CFrame.Position
+				Camera.CFrame = CFrame.new(camPos, head.Position)
+			else
+				lockedTarget = nil
+				lockedIsPlayer = false
+				clearHighlight()
+			end
+		end
+	end)
+
+	local isDragging = false
+	local dragInput, dragStart, startPos
+
+	toggle.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isDragging = true
+			dragStart = input.Position
+			startPos = toggle.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					isDragging = false
+				end
+			end)
+		end
+	end)
+
+	toggle.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and isDragging then
+			local delta = input.Position - dragStart
+			toggle.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+				startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	toggle.MouseButton1Click:Connect(function()
+		if isDragging then return end
+
+		aimlockActive = not aimlockActive
+		toggle.Text = "Aimlock: " .. (aimlockActive and "ON" or "OFF")
+
+		if aimlockActive then
+			while aimlockActive do
+				local live = workspace:FindFirstChild("Live")
+				if not live then break end
+
+				if not lockedTarget or not lockedTarget:IsDescendantOf(live)
+					or (lockedTarget:FindFirstChild("Humanoid") and lockedTarget.Humanoid.Health <= 0) then
+
+					local target = getTargetInFront()
+					if target then
+						local isPlayer = target.Name ~= "Weakest Dummy"
+						if not lockedIsPlayer or not lockedTarget then
+							lockedTarget = target
+							lockedIsPlayer = isPlayer
+							highlightTarget(target, isPlayer)
+						end
+					else
+						lockedTarget = nil
+						lockedIsPlayer = false
+						clearHighlight()
+					end
+				end
+				wait(0.25)
+			end
+		else
+			lockedTarget = nil
+			lockedIsPlayer = false
+			clearHighlight()
+		end
+	end)
+end)
+
+-- Cho phép bật Aimlock bằng phím được chọn
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == getgenv().KeyBind then
+		if isDragging then return end
+
+		aimlockActive = not aimlockActive
+		toggle.Text = "Aimlock: " .. (aimlockActive and "ON" or "OFF")
+
+		if aimlockActive then
+			while aimlockActive do
+				local live = workspace:FindFirstChild("Live")
+				if not live then break end
+
+				if not lockedTarget or not lockedTarget:IsDescendantOf(live)
+					or (lockedTarget:FindFirstChild("Humanoid") and lockedTarget.Humanoid.Health <= 0) then
+
+					local target = getTargetInFront()
+					if target then
+						local isPlayer = target.Name ~= "Weakest Dummy"
+						if not lockedIsPlayer or not lockedTarget then
+							lockedTarget = target
+							lockedIsPlayer = isPlayer
+							highlightTarget(target, isPlayer)
+						end
+					else
+						lockedTarget = nil
+						lockedIsPlayer = false
+						clearHighlight()
+					end
+				end
+				task.wait(0.25)
+			end
+		else
+			lockedTarget = nil
+			lockedIsPlayer = false
+			clearHighlight()
+		end
+	end
+end)
