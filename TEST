@@ -1,21 +1,129 @@
-if _G.AutoFollowInitialized then return end
-_G.AutoFollowInitialized = true
-
+--// 📦 SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+--// 🎞️ ANIMATION IDS
 local animationIds = {
 	"rbxassetid://10503381238",
-	"rbxassetid://10468665991",
-	"rbxassetid://12272894215",
 	"rbxassetid://13379003796"
 }
-
+local specialId = "rbxassetid://12296113986"
 local lastTriggerTime = 0
-local currentHumanoid
-local connection
+local enabled = false
 
+--// 🌫️ BLUR EFFECT
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+
+--// 🖼️ GUI TOGGLE
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ToggleFollowGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = PlayerGui
+
+local dragFrame = Instance.new("Frame")
+dragFrame.Size = UDim2.new(0, 140, 0, 40)
+dragFrame.Position = UDim2.new(0, 20, 0, 100)
+dragFrame.BackgroundTransparency = 1
+dragFrame.Active = true
+dragFrame.Draggable = true
+dragFrame.Parent = screenGui
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleAutoFollow"
+toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+toggleBtn.Position = UDim2.new(0, 0, 0, 0)
+toggleBtn.Text = "Auto Follow: OFF"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextScaled = true
+toggleBtn.BorderSizePixel = 0
+toggleBtn.BackgroundTransparency = 0.05
+toggleBtn.AutoButtonColor = true
+toggleBtn.ClipsDescendants = true
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = dragFrame
+
+local uiCorner = Instance.new("UICorner", toggleBtn)
+uiCorner.CornerRadius = UDim.new(0, 10)
+
+local uiStroke = Instance.new("UIStroke", toggleBtn)
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 1.5
+uiStroke.Transparency = 0.15
+uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- 🎯 Toggle Bật/Tắt
+local dragStart, isDragging, blurTweening = nil, false, false
+toggleBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragStart = input.Position
+		isDragging = false
+	end
+end)
+
+toggleBtn.InputChanged:Connect(function(input)
+	if dragStart and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		if (input.Position - dragStart).Magnitude > 5 and not blurTweening then
+			isDragging = true
+			blurTweening = true
+			for i = 0, 15 do
+				task.delay(i * 0.01, function()
+					blur.Size = i
+				end)
+			end
+		end
+	end
+end)
+
+toggleBtn.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if not isDragging then
+			enabled = not enabled
+			toggleBtn.Text = "Auto Follow: " .. (enabled and "ON" or "OFF")
+			toggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+		end
+		for i = 15, 0, -1 do
+			task.delay((15 - i) * 0.01, function()
+				blur.Size = i
+			end)
+		end
+		blurTweening = false
+		dragStart = nil
+	end
+end)
+
+--// 🔍 TÌM NPC/PLAYER GẦN NHẤT
+local function getClosestTarget(myRoot)
+	local live = Workspace:FindFirstChild("Live")
+	if not live then return nil end
+
+	local closest, shortest = nil, 15
+	for _, model in ipairs(live:GetChildren()) do
+		if model:IsA("Model") and model ~= LocalPlayer.Character then
+			local hrp = model:FindFirstChild("HumanoidRootPart")
+			if hrp and (model.Name == "Weakest Dummy" or Players:GetPlayerFromCharacter(model)) then
+				local dist = (hrp.Position - myRoot.Position).Magnitude
+				if dist < shortest then
+					shortest = dist
+					closest = model
+				end
+			end
+		end
+	end
+	return closest
+end
+
+--// 📌 THAO TÁC KHI PHÁT HIỆN
 local function processAction()
 	local char = LocalPlayer.Character
 	local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -26,54 +134,70 @@ local function processAction()
 	local comm = char:FindFirstChild("Communicate")
 	if comm then
 		local args = {
-			{ Dash = Enum.KeyCode.W, Key = Enum.KeyCode.Q, Goal = "KeyPress" }
+			{
+				Dash = Enum.KeyCode.W,
+				Key = Enum.KeyCode.Q,
+				Goal = "KeyPress"
+			}
 		}
 		comm:FireServer(unpack(args))
 	end
+
+	local target = getClosestTarget(myRoot)
+	if target then
+		local targetHRP = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChild("Torso")
+		if targetHRP then
+			local frontPos = targetHRP.Position + targetHRP.CFrame.LookVector * 2
+			myRoot.CFrame = CFrame.new(frontPos, targetHRP.Position)
+			task.wait(0.1)
+			local start = tick()
+			local conn = RunService.Heartbeat:Connect(function()
+				local elapsed = tick() - start
+				if elapsed > 1 then
+					conn:Disconnect()
+				elseif elapsed > 0.7 then
+					myRoot.CFrame = CFrame.new(frontPos, targetHRP.Position)
+				else
+					local offsetY = math.floor(elapsed * 20) % 2 == 0 and 3 or -3
+					local movePos = targetHRP.Position + targetHRP.CFrame.LookVector * 2 + Vector3.new(0, offsetY, 0)
+					myRoot.CFrame = CFrame.new(movePos, targetHRP.Position)
+				end
+			end)
+		end
+	end
 end
 
+--// 🎞️ PHÁT HIỆN ANIMATION
 local function onAnimationPlayed(hum, anim)
-	if not _G.AutoFollowEnabled then return end
-
+	if not enabled then return end
 	local id = anim.Animation.AnimationId
 	local now = tick()
 
-	if id == "rbxassetid://12296113986" then
-		if now - lastTriggerTime < 5 then return end
+	if id == specialId then
+		if now - lastTriggerTime < 3 then return end
 		lastTriggerTime = now
-
 		task.delay(1.7, function()
-			if _G.AutoFollowEnabled then
-				processAction()
-			end
+			processAction()
 		end)
 	elseif table.find(animationIds, id) then
 		task.delay(0.31, function()
-			if _G.AutoFollowEnabled then
-				processAction()
-			end
+			processAction()
 		end)
 	end
 end
 
+--// ⚙️ THEO DÕI NHÂN VẬT MỚI
 local function connectHumanoid(char)
 	local hum = char:WaitForChild("Humanoid")
-	if connection then connection:Disconnect() end
-	currentHumanoid = hum
-	connection = hum.AnimationPlayed:Connect(function(anim)
+	hum.AnimationPlayed:Connect(function(anim)
 		onAnimationPlayed(hum, anim)
 	end)
 end
 
--- Kết nối nhân vật hiện tại và sau này
 if LocalPlayer.Character then
 	connectHumanoid(LocalPlayer.Character)
 end
-LocalPlayer.CharacterAdded:Connect(connectHumanoid)
 
--- Theo dõi trạng thái toggle (optional print)
-RunService.Heartbeat:Connect(function()
-	if _G.AutoFollowEnabled == nil then
-		_G.AutoFollowEnabled = false
-	end
+LocalPlayer.CharacterAdded:Connect(function(char)
+	connectHumanoid(char)
 end)
