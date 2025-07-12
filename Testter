@@ -1,0 +1,188 @@
+-- 📦 Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 🧍‍♂️ Character
+local function getCharacter()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	while not (char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid")) do
+		task.wait()
+	end
+	return char
+end
+
+local Character = getCharacter()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- ⚙️ Config
+local ANIM_ID = "rbxassetid://13294471966"
+local ROTATE_TIME = 0.2
+local ENABLED = false
+
+-- 📝 Log helper
+local function log(msg)
+	print("[✅ DashHandler]:", msg)
+end
+
+-- 🎮 Toggle GUI
+local gui = Instance.new("ScreenGui", PlayerGui)
+gui.Name = "DashGui"
+gui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0, 140, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 100)
+button.Text = "Toggle: OFF"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
+button.TextColor3 = Color3.new(1,1,1)
+button.BackgroundColor3 = Color3.fromRGB(40,40,40)
+button.Draggable = true
+button.Active = true
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+
+button.MouseButton1Click:Connect(function()
+	ENABLED = not ENABLED
+	button.Text = "Toggle: " .. (ENABLED and "ON" or "OFF")
+	button.BackgroundColor3 = ENABLED and Color3.fromRGB(60,180,100) or Color3.fromRGB(40,40,40)
+end)
+
+-- 🎯 Tìm mục tiêu gần nhất
+local function getClosest()
+	local live = workspace:FindFirstChild("Live")
+	if not live then return nil end
+
+	local closest, minDist = nil, math.huge
+	for _, model in pairs(live:GetChildren()) do
+		if model:IsA("Model") and model ~= Character then
+			local root = model:FindFirstChild("HumanoidRootPart")
+			if root and (model.Name == "Weakest Dummy" or Players:GetPlayerFromCharacter(model)) then
+				local dist = (root.Position - HRP.Position).Magnitude
+				if dist < minDist then
+					minDist = dist
+					closest = root
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- 🚪 Tạm thời CanCollide = false
+local function tempNoCollide()
+	local live = workspace:FindFirstChild("Live")
+	if not live then return end
+
+	local toRestore = {}
+
+	for _, model in pairs(live:GetChildren()) do
+		if model:IsA("Model") and model ~= Character then
+			if model.Name == "Weakest Dummy" or Players:GetPlayerFromCharacter(model) then
+				for _, part in ipairs(model:GetDescendants()) do
+					if part:IsA("BasePart") and part.CanCollide then
+						part.CanCollide = false
+						table.insert(toRestore, part)
+					end
+				end
+			end
+		end
+	end
+
+	task.delay(1, function()
+		for _, part in ipairs(toRestore) do
+			if part and part:IsA("BasePart") then
+				part.CanCollide = true
+			end
+		end
+	end)
+end
+
+-- 🎬 Phát hiện animation
+Humanoid.AnimationPlayed:Connect(function(track)
+	if not ENABLED then return end
+	if track.Animation.AnimationId ~= ANIM_ID then return end
+
+	log("🎞️ Animation khớp, bắt đầu xử lý...")
+
+	task.wait(0.15)
+
+	-- 🔙 Lùi lại 3 stud
+	local backward = HRP.CFrame.LookVector * -5
+	HRP.CFrame = HRP.CFrame + backward
+	log("↩️ Đã lùi lại 3 stud")
+
+	-- 💨 Tween sang phải 10 stud
+	local move = HRP.CFrame.RightVector * 11
+	local tween = TweenService:Create(HRP, TweenInfo.new(0.2), {CFrame = HRP.CFrame + move})
+	tween:Play()
+	log("🚶 Tween sang phải 10 stud")
+
+	-- 🕒 Gửi remote sau 0.15s kể từ khi bắt đầu Tween
+	local remote = Character:FindFirstChild("Communicate")
+	if remote then
+		task.delay(0.15, function()
+			-- 🧱 Tạm thời đi xuyên
+			tempNoCollide()
+
+			-- 📤 Remote
+			remote:FireServer({
+				Dash = Enum.KeyCode.W,
+				Key = Enum.KeyCode.Q,
+				Goal = "KeyPress"
+			})
+			log("📤 Remote gửi + xuyên 1s")
+
+			-- 🧲 Sau 0.63s: bám kiểu Attach trong 0.3s
+			task.delay(0.53, function()
+				local target = getClosest()
+				if not target then return end
+
+				local a1 = Instance.new("Attachment", HRP)
+				local a2 = Instance.new("Attachment", target)
+
+				local align = Instance.new("AlignPosition")
+				align.Attachment0 = a1
+				align.Attachment1 = a2
+				align.RigidityEnabled = true
+				align.ApplyAtCenterOfMass = true
+				align.MaxForce = math.huge
+				align.Responsiveness = 200
+				align.Parent = HRP
+
+				-- Di chuyển tới gần chân mục tiêu
+				HRP.CFrame = CFrame.new(target.Position - Vector3.new(0, target.Size.Y / 2, 0))
+				log("🧲 Bám mềm vào " .. target.Parent.Name)
+
+				task.delay(0.3, function()
+					if align then align:Destroy() end
+					if a1 then a1:Destroy() end
+					if a2 then a2:Destroy() end
+					log("🧲 Gỡ Attach sau 0.3s")
+				end)
+			end)
+		end)
+	end
+
+	tween.Completed:Wait()
+
+	-- 🔄 Xoay về mục tiêu
+	local target = getClosest()
+	if target then
+		local start = tick()
+		RunService:BindToRenderStep("RotateTarget", Enum.RenderPriority.Input.Value + 1, function()
+			if tick() - start >= ROTATE_TIME then
+				RunService:UnbindFromRenderStep("RotateTarget")
+				log("✅ Xoay xong")
+				return
+			end
+			local lookAt = CFrame.lookAt(HRP.Position, Vector3.new(target.Position.X, HRP.Position.Y, target.Position.Z))
+			HRP.CFrame = lookAt
+		end)
+	else
+		log("⚠️ Không tìm thấy mục tiêu trong Live")
+	end
+end)
