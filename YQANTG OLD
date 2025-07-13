@@ -2404,4 +2404,8 @@ tab2:CreateButton("Fov",function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Kakuwhwbbanab"))()
 end)
 
+tab5:CreateButton("Supa Tech V2",function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/TEST"))()
+end)
+
 tab:Show()
