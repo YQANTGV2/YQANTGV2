@@ -4,7 +4,7 @@ local NEVERLOSE = loadstring(game:HttpGet("https://you.whimper.xyz/sources/ronix
 
 NEVERLOSE:Theme("dark")
 
-local Window = NEVERLOSE:AddWindow("YQANTG Gui", "Text")
+local Window = NEVERLOSE:AddWindow("YQANTG Gui", "The Strongest Battleground")
 
 
 
