@@ -1,0 +1,92 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local lp = Players.LocalPlayer
+local ws = game:GetService("Workspace")
+
+local char, hum, hrp
+local active = false
+
+local anims = {
+	["rbxassetid://10469639222"] = true,
+	["rbxassetid://13532604085"] = true,
+	["rbxassetid://13295919399"] = true,
+	["rbxassetid://13378751717"] = true,
+	["rbxassetid://14001963401"] = true,
+	["rbxassetid://15240176873"] = true,
+	["rbxassetid://16515448089"] = true,
+	["rbxassetid://17889471098"] = true,
+	["rbxassetid://104895379416342"] = true,
+}
+
+local gui = Instance.new("ScreenGui", lp:WaitForChild("PlayerGui"))
+gui.Name = "ADS"
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0,160,0,40)
+btn.Position = UDim2.new(0.5,-80,0.85,0)
+btn.AnchorPoint = Vector2.new(0.5,0)
+btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.TextSize = 18
+btn.Font = Enum.Font.Gotham
+btn.Text = "Auto DownSlam: OFF"
+btn.Active = true
+btn.Draggable = true
+btn.Parent = gui
+
+Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
+
+btn.MouseButton1Click:Connect(function()
+	active = not active
+	btn.Text = "Auto DownSlam: " .. (active and "ON" or "OFF")
+	btn.BackgroundColor3 = active and Color3.fromRGB(0,170,0) or Color3.fromRGB(50,50,50)
+end)
+
+local function nearby()
+	if not hrp then return false end
+	for _,v in ipairs(ws:WaitForChild("Live"):GetChildren()) do
+		if v:IsA("Model") and v ~= char then
+			local r = v:FindFirstChild("HumanoidRootPart")
+			if r and (r.Position - hrp.Position).Magnitude <= 15 then
+				if Players:GetPlayerFromCharacter(v) or v.Name == "Weakest Dummy" then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+local function jumpUp()
+	if not hrp or not hum then return end
+	if not nearby() then return end
+	local t = TweenService:Create(hrp, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = hrp.CFrame + Vector3.new(0,6,0)})
+	t:Play()
+	for _,s in ipairs({Enum.HumanoidStateType.PlatformStanding, Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.GettingUp}) do
+		if hum:GetState() == s then
+			hum:ChangeState(Enum.HumanoidStateType.Physics)
+			task.wait()
+		end
+	end
+	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+end
+
+local function watchAnim()
+	if hum then
+		hum.AnimationPlayed:Connect(function(track)
+			if active and track.Animation and anims[track.Animation.AnimationId] then
+				jumpUp()
+			end
+		end)
+	end
+end
+
+local function loadChar()
+	char = lp.Character or lp.CharacterAdded:Wait()
+	hum = char:WaitForChild("Humanoid")
+	hrp = char:WaitForChild("HumanoidRootPart")
+	watchAnim()
+end
+
+lp.CharacterAdded:Connect(loadChar)
+loadChar()
