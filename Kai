@@ -1,0 +1,210 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local LiveFolder = workspace:WaitForChild("Live")
+
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "ToggleAnimListener"
+gui.ResetOnSpawn = false
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 70, 0, 60)
+toggleBtn.Position = UDim2.new(0, 20, 0, 150)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleBtn.Text = "Kai Tech: OFF"
+toggleBtn.TextScaled = true
+toggleBtn.TextColor3 = Color3.new(0, 0.67, 1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+toggleBtn.Parent = gui
+Instance.new("UICorner", toggleBtn)
+
+-- Cooldown Progress Bar
+local cooldownBar = Instance.new("Frame")
+cooldownBar.Size = UDim2.new(0, 220, 0, 20)
+cooldownBar.Position = UDim2.new(0.5, -20, 0.70, 0)
+cooldownBar.AnchorPoint = Vector2.new(0.5, 0.5)
+cooldownBar.BackgroundTransparency = 0.3
+cooldownBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+cooldownBar.Visible = false
+cooldownBar.Parent = gui
+Instance.new("UICorner", cooldownBar)
+
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(1, 0, 1, 0)
+fill.Position = UDim2.new(0, 0, 0, 0)
+fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+fill.BorderSizePixel = 0
+fill.Parent = cooldownBar
+Instance.new("UICorner", fill)
+
+local animationIdsToDetect = {
+	["rbxassetid://10469639222"] = true,
+	["rbxassetid://13532604085"] = true,
+	["rbxassetid://13295919399"] = true,
+	["rbxassetid://13378751717"] = true,
+	["rbxassetid://14001963401"] = true,
+	["rbxassetid://15240176873"] = true,
+	["rbxassetid://16515448089"] = true,
+	["rbxassetid://17889471098"] = true,
+	["rbxassetid://104895379416342"] = true
+}
+
+local cooldownTime = 5
+local function StartCooldownCountdown()
+	cooldownBar.Visible = true
+	fill.Size = UDim2.new(1, 0, 1, 0)
+
+	local tween = TweenService:Create(fill, TweenInfo.new(cooldownTime, Enum.EasingStyle.Linear), {
+		Size = UDim2.new(0, 0, 1, 0)
+	})
+	tween:Play()
+	tween.Completed:Wait()
+
+	cooldownBar.Visible = false
+end
+
+local isEnabled = false
+local isFollowing = false
+local followConnection = nil
+local currentTarget = nil
+local lastUsed = 0
+
+local function GetNearestLiveInFront()
+	local myChar = LocalPlayer.Character
+	if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+	local myHRP = myChar.HumanoidRootPart
+	local myPos = myHRP.Position
+	local myLook = myHRP.CFrame.LookVector
+
+	local closest, shortest = nil, math.huge
+	for _, model in ipairs(LiveFolder:GetChildren()) do
+		if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") and model:FindFirstChild("Humanoid") then
+			if model.Humanoid.Health > 0 then
+				local dir = model.HumanoidRootPart.Position - myPos
+				local dot = myLook:Dot(dir.Unit)
+				if dot > 0.5 then
+					local dist = dir.Magnitude
+					if dist < shortest then
+						shortest = dist
+						closest = model
+					end
+				end
+			end
+		end
+	end
+	return closest
+end
+
+local function SetTargetCollideState(model, state)
+	if not model then return end
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = state
+		end
+	end
+end
+
+local function FollowTargetModel()
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
+	hum.WalkSpeed = 30
+
+	if followConnection then followConnection:Disconnect() end
+	followConnection = RunService.Heartbeat:Connect(function()
+		if not isFollowing or not currentTarget then return end
+		if not currentTarget:FindFirstChild("HumanoidRootPart") or currentTarget.Humanoid.Health <= 0 then return end
+
+		local targetHRP = currentTarget.HumanoidRootPart
+		local behind = targetHRP.Position - targetHRP.CFrame.LookVector * 2
+		hrp.CFrame = CFrame.new(hrp.Position, targetHRP.Position)
+		if (behind - hrp.Position).Magnitude > 2 then
+			hum:MoveTo(behind)
+		end
+	end)
+end
+
+local function StopFollow()
+	if followConnection then followConnection:Disconnect() end
+	local char = LocalPlayer.Character
+	if char and char:FindFirstChild("Humanoid") then
+		char.Humanoid:Move(Vector3.zero, false)
+	end
+	if currentTarget then
+		SetTargetCollideState(currentTarget, true)
+	end
+	currentTarget = nil
+	isFollowing = false
+end
+
+local function JumpSmooth(hrp)
+	local back = -hrp.CFrame.LookVector * 4
+	local bodyVel = Instance.new("BodyVelocity")
+	bodyVel.Velocity = Vector3.new(back.X, 30, back.Z)
+	bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bodyVel.P = 5000
+	bodyVel.Name = "JumpBack"
+	bodyVel.Parent = hrp
+	game.Debris:AddItem(bodyVel, 0.25)
+end
+
+local function WatchForAnimation(humanoid)
+	humanoid.AnimationPlayed:Connect(function(track)
+		if not isEnabled then return end
+		if animationIdsToDetect[track.Animation.AnimationId] then
+			if tick() - lastUsed < cooldownTime then return end
+			lastUsed = tick()
+			task.spawn(StartCooldownCountdown)
+
+			local char = humanoid.Parent
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				JumpSmooth(hrp)
+			end
+
+			task.wait(0.2)
+
+			local args = {
+				{
+					Dash = Enum.KeyCode.W,
+					Key = Enum.KeyCode.Q,
+					Goal = "KeyPress"
+				}
+			}
+			local comm = char:FindFirstChild("Communicate")
+			if comm then
+				comm:FireServer(unpack(args))
+			end
+
+			currentTarget = GetNearestLiveInFront()
+			if currentTarget then
+				SetTargetCollideState(currentTarget, false)
+				isFollowing = true
+				task.spawn(FollowTargetModel)
+				task.delay(1, StopFollow)
+			end
+		end
+	end)
+end
+
+local function HookCharacter(char)
+	local hum = char:WaitForChild("Humanoid", 5)
+	if hum then
+		WatchForAnimation(hum)
+	end
+end
+
+if LocalPlayer.Character then
+	HookCharacter(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(HookCharacter)
+
+toggleBtn.MouseButton1Click:Connect(function()
+	isEnabled = not isEnabled
+	toggleBtn.Text = isEnabled and "Kai Tech: ON" or "Kai Tech: OFF"
+	toggleBtn.BackgroundColor3 = isEnabled and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(50, 50, 50)
+end)
