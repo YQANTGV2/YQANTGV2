@@ -17,15 +17,32 @@ getgenv()._Connection = RunService.Heartbeat:Connect(function()
     if hum.Health > 0 and hum.Health < 25 and not getgenv()._FakeOutDone then
         getgenv()._FakeOutDone = true
 
+        -- Ghi lại vị trí camera hiện tại
+        local savedCam = Camera.CFrame
+
+        -- Tạo Part đỡ bên dưới chân
+        local pad = Instance.new("Part", workspace)
+        pad.Anchored = true
+        pad.Size = Vector3.new(10, 1, 10)
+        pad.Position = Vector3.new(9999, 0, 9999)
+        pad.Name = "FakeOutPad_" .. LocalPlayer.Name
+        pad.Transparency = 1
+        pad.CanCollide = true
+
+        -- Dịch chuyển nhân vật tới vị trí tàng hình
+        hrp.CFrame = CFrame.new(pad.Position + Vector3.new(0, 5, 0))
+
+        -- Tạo part làm camera giữ nguyên
         local fakeCam = Instance.new("Part", workspace)
         fakeCam.Anchored = true
         fakeCam.Transparency = 1
         fakeCam.CanCollide = false
-        fakeCam.CFrame = Camera.CFrame
+        fakeCam.CFrame = savedCam
 
         Camera.CameraSubject = fakeCam
         Camera.CameraType = Enum.CameraType.Scriptable
 
+        -- Ẩn nhân vật
         for _, v in ipairs(char:GetDescendants()) do
             if v:IsA("BasePart") then
                 v.Transparency = 1
@@ -35,6 +52,7 @@ getgenv()._Connection = RunService.Heartbeat:Connect(function()
             end
         end
 
+        -- Sau vài giây, tự tử
         task.delay(4, function()
             for _ = 1, 3 do
                 pcall(function()
@@ -43,12 +61,5 @@ getgenv()._Connection = RunService.Heartbeat:Connect(function()
                 task.wait(0.5)
             end
         end)
-    end
-
-    -- Khôi phục nếu cần
-    if hum and hum.Health > 0 and getgenv()._FakeOutDone and not getgenv().FakeOutEnabled then
-        Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer.Character
-        Camera.CameraType = Enum.CameraType.Custom
-        getgenv()._FakeOutDone = false
     end
 end)
