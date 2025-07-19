@@ -1,0 +1,54 @@
+getgenv().FakeOutEnabled = true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+if getgenv()._Connection then getgenv()._Connection:Disconnect() end
+
+getgenv()._Connection = RunService.Heartbeat:Connect(function()
+    if not getgenv().FakeOutEnabled then return end
+
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+
+    if hum.Health > 0 and hum.Health < 25 and not getgenv()._FakeOutDone then
+        getgenv()._FakeOutDone = true
+
+        local fakeCam = Instance.new("Part", workspace)
+        fakeCam.Anchored = true
+        fakeCam.Transparency = 1
+        fakeCam.CanCollide = false
+        fakeCam.CFrame = Camera.CFrame
+
+        Camera.CameraSubject = fakeCam
+        Camera.CameraType = Enum.CameraType.Scriptable
+
+        for _, v in ipairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Transparency = 1
+                v.CanCollide = false
+            elseif v:IsA("Decal") then
+                v.Transparency = 1
+            end
+        end
+
+        task.delay(4, function()
+            for _ = 1, 3 do
+                pcall(function()
+                    hum:TakeDamage(9999)
+                end)
+                task.wait(0.5)
+            end
+        end)
+    end
+
+    -- Khôi phục nếu cần
+    if hum and hum.Health > 0 and getgenv()._FakeOutDone and not getgenv().FakeOutEnabled then
+        Camera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer.Character
+        Camera.CameraType = Enum.CameraType.Custom
+        getgenv()._FakeOutDone = false
+    end
+end)
