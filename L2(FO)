@@ -3,10 +3,5 @@ if getgenv()._Connection then
    getgenv()._Connection:Disconnect()
    getgenv()._Connection = nil
 end
-
--- Reset camera
-local cam = workspace.CurrentCamera
-local plr = game:GetService("Players").LocalPlayer
-cam.CameraSubject = plr.Character:FindFirstChildOfClass("Humanoid") or plr.Character
-cam.CameraType = Enum.CameraType.Custom
-getgenv()._FakeOutDone = false
+-- Không reset camera, không khôi phục nhân vật
+-- Mục đích: chỉ tắt hệ thống theo dõi máu, giữ trạng thái hiện tại
