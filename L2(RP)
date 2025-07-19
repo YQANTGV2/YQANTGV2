@@ -1,0 +1,16 @@
+getgenv().RespawnAtDeathPos = false
+getgenv()._LastDeathPosition = nil
+
+-- Ngắt toàn bộ kết nối nếu có
+if getgenv()._RespawnConn then
+    getgenv()._RespawnConn:Disconnect()
+    getgenv()._RespawnConn = nil
+end
+if getgenv()._DiedConn then
+    getgenv()._DiedConn:Disconnect()
+    getgenv()._DiedConn = nil
+end
+if getgenv()._CharAddedConn then
+    getgenv()._CharAddedConn:Disconnect()
+    getgenv()._CharAddedConn = nil
+end
