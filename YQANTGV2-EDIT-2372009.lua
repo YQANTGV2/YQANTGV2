@@ -1415,6 +1415,9 @@ local MainTab = Window:AddTab("Auto", "list")
 
 local MainSection = MainTab:AddSection("Auto Tech + More...", "left")
 
+MainSection:AddButton("Auto Upper Punch", function()
+   loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTG/YQANTG/refs/heads/main/autoupperpunch%20(1).txt"))()
+end)
 
 MainSection:AddButton("Auto Block By ( Notpaki )", function()
 
