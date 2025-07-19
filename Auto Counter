@@ -1,9 +1,11 @@
 if getgenv().AutoRemoteTrigger and getgenv().AutoRemoteTrigger.Connection then
-	getgenv().AutoRemoteTrigger.Connection:Disconnect()
-	getgenv().AutoRemoteTrigger = nil
+   getgenv().AutoRemoteTrigger.Connection:Disconnect()
+   getgenv().AutoRemoteTrigger = nil
 end
 
 getgenv().AutoRemoteTrigger = {}
+getgenv().AutoRemoteTrigger.Enabled = true
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -19,10 +21,10 @@ local delayedIDs = {
 }
 
 local normalIDs = {
-	-- Bạn dán phần long list ID tại đây
 	["rbxassetid://10469493270"] = true,
 	["rbxassetid://10469630950"] = true,
 	["rbxassetid://10469639222"] = true,
+	-- ⏩ Bạn tiếp tục thêm phần ID ở đây nhé
 }
 
 local function isClose(pos1, pos2, range)
@@ -43,6 +45,8 @@ local function fireRemotes()
 end
 
 getgenv().AutoRemoteTrigger.Connection = RunService.Heartbeat:Connect(function()
+	if not getgenv().AutoRemoteTrigger.Enabled then return end
+
 	for _, model in pairs(Live:GetChildren()) do
 		if model:IsA("Model") and model ~= Character and model:FindFirstChild("HumanoidRootPart") then
 			local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -55,12 +59,13 @@ getgenv().AutoRemoteTrigger.Connection = RunService.Heartbeat:Connect(function()
 					if delayedIDs[animId] then
 						if isClose(HRP.Position, model.HumanoidRootPart.Position, 20) and not activated[idKey] then
 							activated[idKey] = true
-							task.delay(0.0001, function()
+							task.delay(0.3, function()
 								fireRemotes()
 							end)
 						elseif not isClose(HRP.Position, model.HumanoidRootPart.Position, 30) then
 							activated[idKey] = nil
 						end
+
 					elseif normalIDs[animId] then
 						if isClose(HRP.Position, model.HumanoidRootPart.Position, 15) and not activated[idKey] then
 							activated[idKey] = true
