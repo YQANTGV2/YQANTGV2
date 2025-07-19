@@ -1,0 +1,189 @@
+local Services = {
+	Players = game:GetService("Players"),
+	Lighting = game:GetService("Lighting"),
+	RunService = game:GetService("RunService"),
+	TweenService = game:GetService("TweenService"),
+	VIM = game:GetService("VirtualInputManager"),
+}
+
+local LocalPlayer = Services.Players.LocalPlayer
+local GUI = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+GUI.Name = "AdvancedSilentAim"
+GUI.ResetOnSpawn = false
+
+local State = {
+	Enabled = false,
+	CurrentTarget = nil,
+	Connection = nil,
+	Highlight = nil,
+	Dragging = false,
+}
+
+local function createUI()
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 130, 0, 72)
+	frame.Position = UDim2.new(0.5, -65, 0.5, -36)
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	frame.BorderSizePixel = 2
+	frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = GUI
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.Position = UDim2.new(0, 0, 0, 4)
+	label.BackgroundTransparency = 1
+	label.Text = "Silent Aim"
+	label.TextColor3 = Color3.fromRGB(0, 255, 0)
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 14
+	label.Parent = frame
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 100, 0, 32)
+	button.Position = UDim2.new(0.5, 0, 0, 30)
+	button.AnchorPoint = Vector2.new(0.5, 0)
+	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.Text = "OFF"
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 16
+	button.Parent = frame
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+
+	button.MouseButton1Click:Connect(function()
+		State.Enabled = not State.Enabled
+		button.Text = State.Enabled and "ON" or "OFF"
+		button.BackgroundColor3 = State.Enabled and Color3.fromRGB(60, 170, 60) or Color3.fromRGB(50, 50, 50)
+
+		if State.Enabled then
+			startRotation()
+		else
+			if State.Connection then State.Connection:Disconnect() end
+			if State.Highlight then State.Highlight:Destroy() end
+		end
+	end)
+
+	return frame
+end
+
+local function getClosest()
+	local char = LocalPlayer.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local folder = workspace:FindFirstChild("Live")
+	if not (char and root and folder) then return end
+
+	local closest, dist = nil, math.huge
+
+	for _, model in ipairs(folder:GetChildren()) do
+		local hrp = model:FindFirstChild("HumanoidRootPart")
+		local hum = model:FindFirstChildOfClass("Humanoid")
+		if model:IsA("Model") and model ~= char and hrp and hum and hum.Health > 0 then
+			local d = (hrp.Position - root.Position).Magnitude
+			if d < dist then
+				dist = d
+				closest = model
+			end
+		end
+	end
+
+	return closest
+end
+
+local function highlight(model)
+	if State.Highlight then State.Highlight:Destroy() end
+
+	local h = Instance.new("Highlight")
+	h.Adornee = model
+	h.FillTransparency = 1
+	h.OutlineTransparency = 0
+	h.OutlineColor = Color3.fromRGB(0, 255, 0)
+	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	h.Parent = model
+	State.Highlight = h
+end
+
+function startRotation()
+	if State.Connection then State.Connection:Disconnect() end
+
+	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local myHRP = char:WaitForChild("HumanoidRootPart")
+
+	State.CurrentTarget = getClosest()
+	if not State.CurrentTarget then return end
+
+	local targetHRP = State.CurrentTarget:FindFirstChild("HumanoidRootPart")
+	if not targetHRP then return end
+
+	highlight(State.CurrentTarget)
+
+	State.Connection = Services.RunService.RenderStepped:Connect(function()
+		if not State.Enabled then return end
+
+		local targetHum = State.CurrentTarget:FindFirstChildOfClass("Humanoid")
+		if not targetHum or targetHum.Health <= 0 then
+			State.Enabled = false
+			if State.Connection then State.Connection:Disconnect() end
+			if State.Highlight then State.Highlight:Destroy() end
+			return
+		end
+
+		local dir = targetHRP.Position - myHRP.Position
+		dir = Vector3.new(dir.X, 0, dir.Z)
+
+		if dir.Magnitude > 0.1 then
+			local goal = CFrame.new(myHRP.Position, myHRP.Position + dir)
+			myHRP.CFrame = myHRP.CFrame:Lerp(goal, 0.55)
+		end
+	end)
+end
+
+function createSlideButton(text, keyCode, offsetX)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 100, 0, 32)
+	btn.Position = UDim2.new(0.5, offsetX, 1, -50)
+	btn.AnchorPoint = Vector2.new(0.5, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 16
+	btn.Parent = GUI
+	btn.Active = true
+	btn.Draggable = true
+
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = UDim.new(0, 8)
+
+	local dragging = false
+	btn.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+	end)
+	btn.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+	end)
+
+	btn.MouseButton1Click:Connect(function()
+		if dragging then return end
+		task.spawn(function()
+			Services.VIM:SendKeyEvent(true, keyCode, false, game)
+			task.wait(0.03)
+			Services.VIM:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+			task.wait(0.03)
+			Services.VIM:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+		end)
+	end)
+end
+
+-- Start
+local frame = createUI()
+createSlideButton("←", Enum.KeyCode.A, -60)
+createSlideButton("→", Enum.KeyCode.D, 60)
+
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.1)
+	if State.Enabled then startRotation() end
+end)
