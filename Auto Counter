@@ -1,0 +1,76 @@
+if getgenv().AutoRemoteTrigger and getgenv().AutoRemoteTrigger.Connection then
+	getgenv().AutoRemoteTrigger.Connection:Disconnect()
+	getgenv().AutoRemoteTrigger = nil
+end
+
+getgenv().AutoRemoteTrigger = {}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+local Communicate = Character:WaitForChild("Communicate")
+local Live = workspace:WaitForChild("Live")
+
+local delayedIDs = {
+	["rbxassetid://10479335397"] = true,
+	["rbxassetid://13380255751"] = true,
+	["rbxassetid://134775406437626"] = true,
+}
+
+local normalIDs = {
+	-- Bạn dán phần long list ID tại đây
+	["rbxassetid://10469493270"] = true,
+	["rbxassetid://10469630950"] = true,
+	["rbxassetid://10469639222"] = true,
+}
+
+local function isClose(pos1, pos2, range)
+	return (pos1 - pos2).Magnitude <= range
+end
+
+local activated = {}
+
+local function fireRemotes()
+	local prey = LocalPlayer.Backpack:FindFirstChild("Prey's Peril")
+	if prey then
+		Communicate:FireServer({ Tool = prey, Goal = "Console Move" })
+	end
+	local split = LocalPlayer.Backpack:FindFirstChild("Split Second Counter")
+	if split then
+		Communicate:FireServer({ Tool = split, Goal = "Console Move" })
+	end
+end
+
+getgenv().AutoRemoteTrigger.Connection = RunService.Heartbeat:Connect(function()
+	for _, model in pairs(Live:GetChildren()) do
+		if model:IsA("Model") and model ~= Character and model:FindFirstChild("HumanoidRootPart") then
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+			if animator then
+				for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+					local animId = track.Animation.AnimationId
+					local idKey = model:GetDebugId() .. animId
+
+					if delayedIDs[animId] then
+						if isClose(HRP.Position, model.HumanoidRootPart.Position, 20) and not activated[idKey] then
+							activated[idKey] = true
+							task.delay(0.0001, function()
+								fireRemotes()
+							end)
+						elseif not isClose(HRP.Position, model.HumanoidRootPart.Position, 30) then
+							activated[idKey] = nil
+						end
+					elseif normalIDs[animId] then
+						if isClose(HRP.Position, model.HumanoidRootPart.Position, 15) and not activated[idKey] then
+							activated[idKey] = true
+							fireRemotes()
+						elseif not isClose(HRP.Position, model.HumanoidRootPart.Position, 15) then
+							activated[idKey] = nil
+						end
+					end
+				end
+			end
+		end
+	end
+end)
