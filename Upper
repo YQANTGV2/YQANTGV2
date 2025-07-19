@@ -1,0 +1,111 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+
+-- Danh sách ID animation cần phát hiện
+local AnimationIDs = {
+    [10469639222] = true,
+    [13532604085] = true,
+    [13295919399] = true,
+    [13378751717] = true,
+    [14001963401] = true,
+    [15240176873] = true,
+    [16515448089] = true,
+    [17889471098] = true,
+    [104895379416342] = true
+}
+
+-- Giao diện toggle (chỉ tạo một lần)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoSpaceTriggerGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 140, 0, 40)
+toggleButton.Position = UDim2.new(0.5, -70, 0.9, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Text = "Upper: OFF"
+toggleButton.TextScaled = true
+toggleButton.BorderSizePixel = 0
+toggleButton.AutoButtonColor = true
+toggleButton.ZIndex = 10
+toggleButton.Active = true
+toggleButton.Draggable = true
+toggleButton.ClipsDescendants = true
+toggleButton.Parent = screenGui
+
+-- Bo góc cho nút
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = toggleButton
+
+-- Trạng thái bật/tắt
+local isEnabled = false
+toggleButton.MouseButton1Click:Connect(function()
+	isEnabled = not isEnabled
+	toggleButton.Text = isEnabled and "Upper: ON" or "Upper: OFF"
+	toggleButton.BackgroundColor3 = isEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
+end)
+
+-- Hàm nhấn và thả phím Space
+local function pressSpace()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+end
+
+-- Gửi remote
+local function fireRemote(goal)
+    local args = {
+        [1] = {
+            ["Mobile"] = true,
+            ["Goal"] = goal
+        }
+    }
+    pcall(function()
+        LocalPlayer.Character.Communicate:FireServer(unpack(args))
+    end)
+end
+
+-- Hàm theo dõi animation
+local function monitorAnimations()
+    RunService:UnbindFromRenderStep("AutoUpperWatcher")
+    RunService:BindToRenderStep("AutoUpperWatcher", 300, function()
+        if not isEnabled then return end
+
+        local character = LocalPlayer.Character
+        if not character then return end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+            local anim = track.Animation
+            if anim and anim.AnimationId then
+                local id = tonumber(anim.AnimationId:match("%d+"))
+                if id and AnimationIDs[id] then
+                    task.wait(0.0001)
+                    pressSpace()
+                    task.wait(0.2)
+                    fireRemote("LeftClick")
+                    task.wait(0.2)
+                    fireRemote("LeftClickRelease")
+                    break
+                end
+            end
+        end
+    end)
+end
+
+-- Gọi monitor khi vào game hoặc respawn
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    monitorAnimations()
+end)
+
+if LocalPlayer.Character then
+    monitorAnimations()
+end
