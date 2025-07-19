@@ -822,6 +822,11 @@ end)
 
 local Section = Window:NewSection("Auto For All Character")
 
+Section:CreateButton("Kai Tech", function()
+print("Clicked")
+loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Kai"))()
+end)
+
 Section:CreateButton("Upper Punch", function()
 print("Clicked: BackDash (Mobile)")
 loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTG/YQANTG/refs/heads/main/autoupperpunch%20(1).txt"))()
