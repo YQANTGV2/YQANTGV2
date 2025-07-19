@@ -2,57 +2,20 @@ local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/blood
 
 local Window = Library:NewWindow("Auto Tech")
 
-local Section = Window:NewSection("Button For Tech")
-
-Section:CreateButton("M1 Reset", function()
-    print("Clicked: M1 Reset")
-    getgenv().keybinds = {
-        m1reset = Enum.KeyCode.R,
-        emotedash = Enum.KeyCode.T,
-        rotation = Enum.KeyCode.H
-    }
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Slaphello/M1-Reset-And-Emote-Dash-TSB-OLD-/refs/heads/main/M1R%26ED%20TSB"))()
-end)
-
-Section:CreateButton("Auto Kyoto", function()
-    print("Clicked: Auto Kyoto")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Auto%20kyoto%20ma%20hoa"))()
-end)
-
-Section:CreateButton("Loop Dash", function()
+local Section = Window:NewSection("Garou")
+ 
+ Section:CreateButton("Loop Dash", function()
     print("Clicked: Loop Dash")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Loop%20Dash%20Rework%20Script%20Real"))()
 end)
-
-Section:CreateButton("Tornado Tech", function()
-    print("Clicked: Tornado Tech")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Idk%20lolololol"))()
-end)
-
-Section:CreateButton("Oreo Rework", function()
-    print("Clicked: Oreo Rework")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Oreo%20rework"))()
-end)
-
-Section:CreateButton("Supa Tech V2", function()
-    print("Clicked: Supa Tech V2")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/TEST"))()
-end)
-
-Section:CreateButton("BackDash (Mobile)", function()
-    print("Clicked: BackDash (Mobile)")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20Tech"))()
-end)
-
-Section:CreateButton("BackDash (PC)", function()
-    print("Clicked: BackDash (PC)")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20For%20Pc"))()
-end)
-
-local Section = Window:NewSection("Garou")
  
+-- Bin toàn cc lu trng thái toggle
+_G._AutoTwisted_Enabled = false
+
 Section:CreateToggle("Auto Twisted", function(state)
 	print("Auto Twisted:", state)
+
+	_G._AutoTwisted_Enabled = state  -- Cp nht trng thái toàn cc
 
 	local player = game.Players.LocalPlayer
 	local cooldown = false
@@ -62,23 +25,25 @@ Section:CreateToggle("Auto Twisted", function(state)
 	local delayBeforeRemote = 0.23
 
 	local function useRemote()
-		local args = {
-			[1] = {
-				["Dash"] = Enum.KeyCode.W,
-				["Key"] = Enum.KeyCode.Q,
-				["Goal"] = "KeyPress"
-			}
-		}
+		if not _G._AutoTwisted_Enabled then return end
 		local char = player.Character
 		if char and char:FindFirstChild("Communicate") then
+			local args = {
+				[1] = {
+					["Dash"] = Enum.KeyCode.W,
+					["Key"] = Enum.KeyCode.Q,
+					["Goal"] = "KeyPress"
+				}
+			}
 			char.Communicate:FireServer(unpack(args))
 		end
 	end
 
 	local function stepBack()
+		if not _G._AutoTwisted_Enabled then return end
 		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then
-			hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 3)
+			hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 3.4)
 		end
 	end
 
@@ -87,12 +52,16 @@ Section:CreateToggle("Auto Twisted", function(state)
 		local humanoid = char:WaitForChild("Humanoid")
 
 		animationConnection = humanoid.AnimationPlayed:Connect(function(track)
+			if not _G._AutoTwisted_Enabled then return end
 			if track.Animation and track.Animation.AnimationId == animationId and not cooldown then
 				cooldown = true
+
 				task.delay(delayBeforeRemote, function()
+					if not _G._AutoTwisted_Enabled then return end
 					stepBack()
 					useRemote()
 				end)
+
 				task.delay(5, function()
 					cooldown = false
 				end)
@@ -100,11 +69,14 @@ Section:CreateToggle("Auto Twisted", function(state)
 		end)
 	end
 
-	if state then
+	-- X lý bt/tt
+	if _G._AutoTwisted_Enabled then
 		bindAnimationDetection()
 		charAddedConnection = player.CharacterAdded:Connect(function()
 			task.wait(1)
-			bindAnimationDetection()
+			if _G._AutoTwisted_Enabled then
+				bindAnimationDetection()
+			end
 		end)
 	else
 		if animationConnection then
@@ -118,7 +90,7 @@ Section:CreateToggle("Auto Twisted", function(state)
 	end
 end)
 
--- 📦 Dịch vụ & Biến chính
+-- ðŸ“¦ Dá»‹ch vá»¥ & Biáº¿n chÃ­nh
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -133,7 +105,7 @@ local ANIM_ID_HIGHLIGHT = "rbxassetid://13532604085"
 local ENABLED = false
 local OnCooldown = false
 
--- 🎯 Tìm NPC hoặc player gần nhất phía trước
+-- ðŸŽ¯ TÃ¬m NPC hoáº·c player gáº§n nháº¥t phÃ­a trÆ°á»›c
 local function getClosestInFront(maxDist)
 	local live = workspace:FindFirstChild("Live")
 	if not live then return nil end
@@ -161,7 +133,7 @@ local function getClosest()
 	return getClosestInFront(1000)
 end
 
--- 🚪 Cho phép xuyên người khác trong 1 giây
+-- ðŸšª Cho phÃ©p xuyÃªn ngÆ°á»i khÃ¡c trong 1 giÃ¢y
 local function tempNoCollide()
 	local live = workspace:FindFirstChild("Live")
 	if not live then return end
@@ -190,13 +162,13 @@ local function tempNoCollide()
 	end)
 end
 
--- 🟢 Bật bằng Section:CreateToggle
+-- ðŸŸ¢ Báº­t báº±ng Section:CreateToggle
 Section:CreateToggle("Instant Twisted Rework", function(value)
 	print("Dash Combo Enabled:", value)
 	ENABLED = value
 end)
 
--- 🎬 Phản ứng khi phát animation dash
+-- ðŸŽ¬ Pháº£n á»©ng khi phÃ¡t animation dash
 Humanoid.AnimationPlayed:Connect(function(track)
 	if not ENABLED then return end
 	if track.Animation.AnimationId ~= ANIM_ID_TRIGGER then return end
@@ -205,10 +177,10 @@ Humanoid.AnimationPlayed:Connect(function(track)
 
 	task.wait(0.15)
 
-	-- Lùi lại
+	-- LÃ¹i láº¡i
 	HRP.CFrame = HRP.CFrame + HRP.CFrame.LookVector * -3
 
-	-- Tween sang phải
+	-- Tween sang pháº£i
 	local tween = TweenService:Create(HRP, TweenInfo.new(0.25), {
 		CFrame = HRP.CFrame + HRP.CFrame.RightVector * 10
 	})
@@ -250,7 +222,7 @@ Humanoid.AnimationPlayed:Connect(function(track)
 
 	tween.Completed:Wait()
 
-	-- Aim vào mục tiêu
+	-- Aim vÃ o má»¥c tiÃªu
 	local target = getClosest()
 	if target then
 		local start = tick()
@@ -269,7 +241,7 @@ Humanoid.AnimationPlayed:Connect(function(track)
 	end)
 end)
 
--- ✨ Highlight khi animation đặc biệt
+-- âœ¨ Highlight khi animation Ä‘áº·c biá»‡t
 Humanoid.AnimationPlayed:Connect(function(track)
 	if not ENABLED then return end
 	if track.Animation.AnimationId ~= ANIM_ID_HIGHLIGHT then return end
@@ -308,10 +280,10 @@ local function FireDashRemote()
 	LocalPlayer.Character:WaitForChild("Communicate"):FireServer(unpack(args))
 end
 
--- Tổng xoay (không nâng dồn)
+-- Tá»•ng xoay (khÃ´ng nÃ¢ng dá»“n)
 local TotalRotationY = 0
 
--- Xoay và nâng đúng 1 giá trị, không cộng dồn độ cao
+-- Xoay vÃ  nÃ¢ng Ä‘Ãºng 1 giÃ¡ trá»‹, khÃ´ng cá»™ng dá»“n Ä‘á»™ cao
 local function RotateAndLift(angleAdd, liftAmount)
 	local char = LocalPlayer.Character
 	if not char then return end
@@ -329,17 +301,110 @@ local function RotateAndLift(angleAdd, liftAmount)
 	Camera.CFrame = finalCFrame + (Camera.CFrame.LookVector.Unit * -6)
 end
 
--- Trạng thái toggle & cooldown
 local ToggleEnabled = false
 local CanTrigger = true
 
--- 🔘 Chuyển toggle thành Section:CreateToggle
 Section:CreateToggle("Instant Lethal", function(value)
 	print("Instant Lethal:", value)
 	ToggleEnabled = value
 end)
 
--- 💫 Kích hoạt combo khi phát hiện animation
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local heartbeatConnection
+local isEnabled = false
+local animationId = "rbxassetid://12273188754"
+local detected = false
+
+Section:CreateToggle("Auto Kyoto", function(value)
+	print("Trigger toggle:", value)
+	isEnabled = value
+
+	local function cleanup()
+		if heartbeatConnection then
+			heartbeatConnection:Disconnect()
+			heartbeatConnection = nil
+		end
+	end
+
+	local function onHeartbeat()
+		if not isEnabled then return end
+
+		local Character = LocalPlayer.Character
+		if not Character then return end
+
+		local Humanoid = Character:FindFirstChild("Humanoid")
+		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+		if not Humanoid or not HumanoidRootPart then return end
+
+		for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+			if track.Animation and track.Animation.AnimationId == animationId and not detected then
+				detected = true
+
+				task.delay(3, function()
+					detected = false
+				end)
+
+				task.spawn(function()
+					-- i 1.6s nhng kim tra liên tc
+					local t1 = tick()
+					while tick() - t1 < 1.6 do
+						if not isEnabled then return end
+						RunService.Heartbeat:Wait()
+					end
+
+					if not isEnabled then return end
+
+					local forward = HumanoidRootPart.CFrame.LookVector * 27
+					local targetPos = HumanoidRootPart.Position + forward
+					local targetCFrame = CFrame.new(targetPos)
+
+					local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(0.2), {
+						CFrame = targetCFrame
+					})
+					tween:Play()
+
+					-- i 0.1s ri dùng remote
+					local t2 = tick()
+					while tick() - t2 < 0.1 do
+						if not isEnabled then return end
+						RunService.Heartbeat:Wait()
+					end
+
+					if not isEnabled then return end
+
+					local tool = LocalPlayer:FindFirstChild("Backpack"):FindFirstChild("Lethal Whirlwind Stream")
+					if tool then
+						local args = {
+							{
+								Tool = tool,
+								Goal = "Console Move"
+							}
+						}
+						local com = Character:FindFirstChild("Communicate")
+						if com then
+							print(" Firing remote: Console Move")
+							com:FireServer(unpack(args))
+						end
+					end
+				end)
+
+				break
+			end
+		end
+	end
+
+	if isEnabled then
+		cleanup()
+		heartbeatConnection = RunService.Heartbeat:Connect(onHeartbeat)
+	else
+		cleanup()
+	end
+end)
+
 RunService.RenderStepped:Connect(function()
 	if not ToggleEnabled or not CanTrigger then return end
 
@@ -354,13 +419,13 @@ RunService.RenderStepped:Connect(function()
 			task.spawn(function()
 				task.wait(1.71)
 
-				-- 🔁 LẦN 1: xoay + nâng 6.4
+				-- ðŸ” Láº¦N 1: xoay + nÃ¢ng 6.4
 				RotateAndLift(180, 6.4)
 				FireDashRemote()
 
 				task.wait(0.28)
 
-				-- 🔁 LẦN 2: xoay + nâng 5.5
+				-- ðŸ” Láº¦N 2: xoay + nÃ¢ng 5.5
 				RotateAndLift(180, 5.5)
 
 				task.wait(3)
@@ -555,7 +620,7 @@ Section:CreateToggle("Grasp + Dash", function(state)
 		connection1 = Humanoid.AnimationPlayed:Connect(function(track)
 			if track.Animation.AnimationId == animationIdToDetect and not detected then
 				detected = true
-				print("✅ Phát hiện animation!")
+				print("âœ… PhÃ¡t hiá»‡n animation!")
 
 				task.delay(0.8, function()
 					local char = LocalPlayer.Character
@@ -565,7 +630,7 @@ Section:CreateToggle("Grasp + Dash", function(state)
 					if root then
 						local backVec = -root.CFrame.LookVector * 4.5
 						root.CFrame = root.CFrame + backVec
-						print("↩️ Đã lùi lại 5 stud")
+						print("â†©ï¸ ÄÃ£ lÃ¹i láº¡i 5 stud")
 					end
 
 					local remote = char:FindFirstChild("Communicate")
@@ -578,7 +643,7 @@ Section:CreateToggle("Grasp + Dash", function(state)
 							}
 						}
 						remote:FireServer(unpack(args))
-						print("📤 Đã gửi remote Dash Q")
+						print("ðŸ“¤ ÄÃ£ gá»­i remote Dash Q")
 					end
 
 					task.wait(1.5)
@@ -659,7 +724,7 @@ Section:CreateToggle("Auto Whirlwind Dunk", function(isEnabled)
 	local RunService = game:GetService("RunService")
 	local lp = Players.LocalPlayer
 
-	-- Ngắt kết nối cũ nếu có
+	-- Ngáº¯t káº¿t ná»‘i cÅ© náº¿u cÃ³
 	if _G.TeleportAnimConnection then
 		_G.TeleportAnimConnection:Disconnect()
 		_G.TeleportAnimConnection = nil
@@ -701,6 +766,16 @@ Section:CreateToggle("Auto Whirlwind Dunk", function(isEnabled)
 end)
 
 local Section = Window:NewSection("Saitama")
+
+Section:CreateButton("M1 Reset", function()
+    print("Clicked: M1 Reset")
+    getgenv().keybinds = {
+        m1reset = Enum.KeyCode.R,
+        emotedash = Enum.KeyCode.T,
+        rotation = Enum.KeyCode.H
+    }
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Slaphello/M1-Reset-And-Emote-Dash-TSB-OLD-/refs/heads/main/M1R%26ED%20TSB"))()
+end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -745,7 +820,32 @@ Section:CreateToggle("UpperCut + Dash", function(state)
 	end
 end)
 
-local Section = Window:NewSection("Auto For All")
+local Section = Window:NewSection("Auto For All Character")
+
+Section:CreateButton("Upper Punch", function()
+print("Clicked: BackDash (Mobile)")
+loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTG/YQANTG/refs/heads/main/autoupperpunch%20(1).txt"))()
+end)
+
+Section:CreateButton("BackDash (Mobile)", function()
+    print("Clicked: BackDash (Mobile)")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20Tech"))()
+end)
+
+Section:CreateButton("BackDash (PC)", function()
+    print("Clicked: BackDash (PC)")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20For%20Pc"))()
+end)
+
+Section:CreateButton("Tornado Tech", function()
+    print("Clicked: Tornado Tech")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Idk%20lolololol"))()
+end)
+
+Section:CreateButton("Oreo Rework", function()
+    print("Clicked: Oreo Rework")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Oreo%20rework"))()
+end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -893,7 +993,6 @@ end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 setupCharacter()
 
--- 🔁 Toggle chuyển đổi đúng chuẩn
 Section:CreateToggle("Auto DownSlam", function(value)
 	print("Auto DownSlam:", value)
 	enabled = value
@@ -1058,7 +1157,7 @@ player.CharacterAdded:Connect(function(char)
 	end
 end)
 
--- ✅ Thay đổi Toggle chuẩn
+-- âœ… Thay Ä‘á»•i Toggle chuáº©n
 Section:CreateToggle("Kiba Tech", function(value)
 	print("Kiba Tech:", value)
 	systemEnabled = value
@@ -1072,16 +1171,25 @@ Section:CreateToggle("Kiba Tech", function(value)
 	end
 end)
 
-Section:CreateToggle("Crazy Tech", function(value)
-    print("Auto Follow toggled:", value)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-    local enabled = value
-    local lastTriggerTime = 0
-    local animationIds = {
-        "rbxassetid://10503381238",
-        "rbxassetid://13379003796"
-    }
-    local specialId = "rbxassetid://12296113986"
+local LocalPlayer = Players.LocalPlayer
+local lastTriggerTime = 0
+local animationIds = {
+    "rbxassetid://10503381238",
+    "rbxassetid://13379003796"
+}
+local specialId = "rbxassetid://12296113986"
+
+-- Lu kt ni  qun lý
+local animationConnection
+local characterConnection
+local heartbeatConnection
+
+-- Toggle chính
+Section:CreateToggle("Crazy Tech", function(enabled)
+    print("Toggled:", enabled)
 
     local function getClosestTarget(myRoot)
         local live = workspace:FindFirstChild("Live")
@@ -1089,7 +1197,7 @@ Section:CreateToggle("Crazy Tech", function(value)
 
         local closest, shortest = nil, 15
         for _, model in ipairs(live:GetChildren()) do
-            if model:IsA("Model") and model ~= Players.LocalPlayer.Character then
+            if model:IsA("Model") and model ~= LocalPlayer.Character then
                 local hrp = model:FindFirstChild("HumanoidRootPart")
                 if hrp and (model.Name == "Weakest Dummy" or Players:GetPlayerFromCharacter(model)) then
                     local dist = (hrp.Position - myRoot.Position).Magnitude
@@ -1104,7 +1212,9 @@ Section:CreateToggle("Crazy Tech", function(value)
     end
 
     local function processAction()
-        local char = Players.LocalPlayer.Character
+        if not enabled then return end
+
+        local char = LocalPlayer.Character
         local myRoot = char and char:FindFirstChild("HumanoidRootPart")
         if not myRoot then return end
 
@@ -1112,12 +1222,11 @@ Section:CreateToggle("Crazy Tech", function(value)
 
         local comm = char:FindFirstChild("Communicate")
         if comm then
-            local args = {{
+            comm:FireServer({
                 Dash = Enum.KeyCode.W,
                 Key = Enum.KeyCode.Q,
                 Goal = "KeyPress"
-            }}
-            comm:FireServer(unpack(args))
+            })
         end
 
         local target = getClosestTarget(myRoot)
@@ -1127,13 +1236,16 @@ Section:CreateToggle("Crazy Tech", function(value)
                 local frontPos = targetHRP.Position + targetHRP.CFrame.LookVector * 2
                 myRoot.CFrame = CFrame.new(frontPos, targetHRP.Position)
 
-                task.wait(0.1)
                 local start = tick()
-                local conn
-                conn = RunService.Heartbeat:Connect(function()
+                if heartbeatConnection then heartbeatConnection:Disconnect() end
+                heartbeatConnection = RunService.Heartbeat:Connect(function()
+                    if not enabled then
+                        heartbeatConnection:Disconnect()
+                        return
+                    end
                     local elapsed = tick() - start
                     if elapsed > 1 then
-                        conn:Disconnect()
+                        heartbeatConnection:Disconnect()
                     elseif elapsed > 0.7 then
                         myRoot.CFrame = CFrame.new(frontPos, targetHRP.Position)
                     else
@@ -1155,29 +1267,41 @@ Section:CreateToggle("Crazy Tech", function(value)
             if now - lastTriggerTime < 3 then return end
             lastTriggerTime = now
             task.delay(1.7, function()
-                processAction()
+                if enabled then processAction() end
             end)
         elseif table.find(animationIds, id) then
             task.delay(0.31, function()
-                processAction()
+                if enabled then processAction() end
             end)
         end
     end
 
-    local function connectHumanoid(char)
-        local hum = char:WaitForChild("Humanoid")
-        hum.AnimationPlayed:Connect(function(anim)
-            onAnimationPlayed(hum, anim)
-        end)
-    end
-
-    if enabled and Players.LocalPlayer.Character then
-        connectHumanoid(Players.LocalPlayer.Character)
-    end
-
-    Players.LocalPlayer.CharacterAdded:Connect(function(char)
-        if enabled then
-            connectHumanoid(char)
+    local function connectToCharacter(char)
+        if animationConnection then animationConnection:Disconnect() end
+        local hum = char:WaitForChild("Humanoid", 2)
+        if hum then
+            animationConnection = hum.AnimationPlayed:Connect(function(anim)
+                onAnimationPlayed(hum, anim)
+            end)
         end
-    end)
+    end
+
+    -- Nu bt
+    if enabled then
+        local char = LocalPlayer.Character
+        if char then
+            connectToCharacter(char)
+        end
+
+        if characterConnection then characterConnection:Disconnect() end
+        characterConnection = LocalPlayer.CharacterAdded:Connect(function(char)
+            if not enabled then return end
+            connectToCharacter(char)
+        end)
+    else
+        -- Nu tt, ngt mi kt ni
+        if animationConnection then animationConnection:Disconnect() end
+        if characterConnection then characterConnection:Disconnect() end
+        if heartbeatConnection then heartbeatConnection:Disconnect() end
+    end
 end)
