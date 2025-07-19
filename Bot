@@ -1,0 +1,136 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "SmoothFollowGUI"
+gui.ResetOnSpawn = false
+
+local liveFolder = workspace:WaitForChild("Live")
+local followState = {
+	enabled = false,
+	target = nil,
+	connection = nil,
+}
+
+-- UI Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 50, 0, 45)
+button.Position = UDim2.new(0, 20, 0, 150)
+button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+button.Text = "Bot: OFF"
+button.TextScaled = true
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.Draggable = true
+button.Active = true
+button.Parent = gui
+
+Instance.new("UICorner", button)
+
+-- Utility
+local function setCollide(model, state)
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = state
+		end
+	end
+end
+
+local function getNearestFront()
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local origin = hrp.Position
+	local look = hrp.CFrame.LookVector
+	local closest, minDist = nil, math.huge
+
+	for _, model in ipairs(liveFolder:GetChildren()) do
+		local targetHRP = model:FindFirstChild("HumanoidRootPart")
+		local hum = model:FindFirstChildOfClass("Humanoid")
+		if model:IsA("Model") and targetHRP and hum and hum.Health > 0 then
+			local dir = targetHRP.Position - origin
+			local dot = look:Dot(dir.Unit)
+			if dot > 0.5 and dir.Magnitude < minDist then
+				closest = model
+				minDist = dir.Magnitude
+			end
+		end
+	end
+
+	return closest
+end
+
+local function followLoop()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
+	hum.WalkSpeed = 30
+
+	if followState.connection then followState.connection:Disconnect() end
+
+	followState.connection = RunService.Heartbeat:Connect(function()
+		local target = followState.target
+		if not followState.enabled or not target then return end
+
+		local targetHRP = target:FindFirstChild("HumanoidRootPart")
+		local targetHum = target:FindFirstChildOfClass("Humanoid")
+		if not targetHRP or not targetHum or targetHum.Health <= 0 then return end
+
+		local behind = targetHRP.Position - targetHRP.CFrame.LookVector * 3
+		local dist = (behind - hrp.Position).Magnitude
+
+		hrp.CFrame = CFrame.new(hrp.Position, targetHRP.Position)
+		if dist > 4 then
+			hum:MoveTo(behind)
+		end
+	end)
+end
+
+local function stopFollow()
+	if followState.connection then followState.connection:Disconnect() end
+
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum:Move(Vector3.zero, false)
+		hum.WalkSpeed = 16
+	end
+
+	if followState.target then
+		setCollide(followState.target, true)
+	end
+
+	followState.target = nil
+end
+
+-- Toggle Handler
+local function toggleFollow()
+	followState.enabled = not followState.enabled
+	button.Text = followState.enabled and "Bot: ON" or "Bot: OFF"
+
+	if followState.enabled then
+		local target = getNearestFront()
+		if target then
+			followState.target = target
+			setCollide(target, false)
+			task.spawn(followLoop)
+		else
+			followState.enabled = false
+			button.Text = "No Target"
+		end
+	else
+		stopFollow()
+	end
+end
+
+button.MouseButton1Click:Connect(toggleFollow)
+
+-- Optional: Retarget on respawn
+player.CharacterAdded:Connect(function()
+	task.wait(1)
+	if followState.enabled and followState.target then
+		task.spawn(followLoop)
+	end
+end)
