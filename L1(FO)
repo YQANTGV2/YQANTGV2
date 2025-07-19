@@ -1,10 +1,21 @@
 getgenv().FakeOutEnabled = true
+getgenv()._FakeOutDone = false -- 🟢 Reset lại trạng thái
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
-if getgenv()._Connection then getgenv()._Connection:Disconnect() end
+-- Reset lại nếu nhân vật respawn
+LocalPlayer.CharacterAdded:Connect(function()
+    getgenv()._FakeOutDone = false
+end)
+
+-- Ngắt kết nối cũ nếu có
+if getgenv()._Connection then
+    getgenv()._Connection:Disconnect()
+    getgenv()._Connection = nil
+end
 
 getgenv()._Connection = RunService.Heartbeat:Connect(function()
     if not getgenv().FakeOutEnabled then return end
@@ -14,13 +25,13 @@ getgenv()._Connection = RunService.Heartbeat:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return end
 
-    if hum.Health > 0 and hum.Health < 25 and not getgenv()._FakeOutDone then
+    if hum.Health > 0 and hum.Health < 35 and not getgenv()._FakeOutDone then
         getgenv()._FakeOutDone = true
 
         -- Ghi lại vị trí camera hiện tại
         local savedCam = Camera.CFrame
 
-        -- Tạo Part đỡ bên dưới chân
+        -- Tạo Part giữ nhân vật không rơi
         local pad = Instance.new("Part", workspace)
         pad.Anchored = true
         pad.Size = Vector3.new(10, 1, 10)
@@ -29,10 +40,10 @@ getgenv()._Connection = RunService.Heartbeat:Connect(function()
         pad.Transparency = 1
         pad.CanCollide = true
 
-        -- Dịch chuyển nhân vật tới vị trí tàng hình
+        -- Dịch chuyển nhân vật tới vùng không ai thấy
         hrp.CFrame = CFrame.new(pad.Position + Vector3.new(0, 5, 0))
 
-        -- Tạo part làm camera giữ nguyên
+        -- Camera cố định ở vị trí cũ
         local fakeCam = Instance.new("Part", workspace)
         fakeCam.Anchored = true
         fakeCam.Transparency = 1
