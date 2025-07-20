@@ -1,0 +1,266 @@
+local animationIds = {
+	["rbxassetid://10503381238"] = true,
+	["rbxassetid://13379003796"] = true,
+}
+
+local TWEEN_HEIGHT_OFFSET = Vector3.new(0, 5, 0)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local gui
+local button
+local toggleConnection
+local aimlockConnection
+local systemEnabled = false
+local lockedTarget = nil
+
+local function startAimlock(target)
+	if aimlockConnection then aimlockConnection:Disconnect() end
+
+	local cam = Workspace.CurrentCamera
+	local character = player.Character
+	local lockTime = 0.65
+	local chaosTime = 0.15
+	local startTime = tick()
+
+	aimlockConnection = RunService.RenderStepped:Connect(function()
+		if not (target and target.Parent and target:FindFirstChild("HumanoidRootPart")) then return end
+		if not (character and character:FindFirstChild("HumanoidRootPart")) then return end
+
+		local now = tick()
+		local targetPos = target.HumanoidRootPart.Position
+		local camPos = cam.CFrame.Position
+
+		if now - startTime < chaosTime then
+			local angleX = math.rad(math.random(-15, 25))
+			local angleY = math.rad(math.random(-15, 25))
+			local baseCFrame = CFrame.new(camPos, targetPos)
+			local newLook = baseCFrame * CFrame.Angles(angleY, angleX, 0)
+			cam.CFrame = newLook
+		else
+			cam.CFrame = CFrame.new(camPos, targetPos)
+		end
+
+		character.HumanoidRootPart.CFrame = CFrame.new(character.HumanoidRootPart.Position, cam.CFrame.Position + cam.CFrame.LookVector)
+	end)
+
+	task.delay(lockTime, function()
+		if aimlockConnection then
+			aimlockConnection:Disconnect()
+			aimlockConnection = nil
+			lockedTarget = nil
+		end
+	end)
+end
+
+local function setupCharacter(character)
+	if toggleConnection then toggleConnection:Disconnect() end
+	if aimlockConnection then aimlockConnection:Disconnect() end
+	lockedTarget = nil
+
+	if not systemEnabled then return end
+
+	local isTweening = false
+	local lastPlaying = false
+	local cooldown = false
+
+	toggleConnection = RunService.RenderStepped:Connect(function()
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character:FindFirstChild("Humanoid")
+		if not character or not hrp or not humanoid then return end
+
+		local isPlaying = false
+		for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+			if track.Animation and animationIds[track.Animation.AnimationId] then
+				isPlaying = true
+				break
+			end
+		end
+
+		if isPlaying and not isTweening and not lastPlaying and not cooldown then
+			isTweening = true
+			lastPlaying = true
+			cooldown = true
+
+			task.delay(0.18, function()
+				local target = nil
+				local shortestDist = 15
+				local live = Workspace:FindFirstChild("Live")
+				if live then
+					for _, model in ipairs(live:GetChildren()) do
+						if model:IsA("Model") and model ~= character then
+							local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head") or model:FindFirstChild("UpperTorso")
+							if root then
+								local dist = (hrp.Position - root.Position).Magnitude
+								if dist < shortestDist then
+									shortestDist = dist
+									target = model
+								end
+							end
+						end
+					end
+				end
+
+				if target and target:FindFirstChild("HumanoidRootPart") then
+					local targetPos = target.HumanoidRootPart.Position + TWEEN_HEIGHT_OFFSET
+					local targetCF = CFrame.new(targetPos)
+					local tween = TweenService:Create(hrp, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {
+						CFrame = targetCF
+					})
+					tween:Play()
+					tween.Completed:Wait()
+
+					local bodyPosition = Instance.new("BodyPosition")
+					bodyPosition.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+					bodyPosition.P = 10000
+					bodyPosition.D = 100
+					bodyPosition.Position = targetPos
+					bodyPosition.Parent = hrp
+
+					task.delay(0.76, function()
+						bodyPosition:Destroy()
+					end)
+
+					local remote = character:FindFirstChild("Communicate")
+					if remote then
+						local args = {
+							{
+								Dash = Enum.KeyCode.W,
+								Key = Enum.KeyCode.Q,
+								Goal = "KeyPress"
+							}
+						}
+						remote:FireServer(unpack(args))
+					end
+
+					lockedTarget = target
+					startAimlock(lockedTarget)
+				end
+
+				isTweening = false
+				task.delay(4, function()
+					cooldown = false
+				end)
+			end)
+		elseif not isPlaying then
+			lastPlaying = false
+		end
+	end)
+end
+
+local function setTweenSystemEnabled(enabled)
+	systemEnabled = enabled
+	button.Text = systemEnabled and "KIBA: ON" or "KIBA: OFF"
+	button.BackgroundColor3 = systemEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
+
+	if systemEnabled and player.Character then
+		setupCharacter(player.Character)
+	elseif toggleConnection then
+		toggleConnection:Disconnect()
+	end
+end
+
+-- ÉP GUI LUÔN TẠO
+gui = Instance.new("ScreenGui")
+gui.Name = "TweenUpToggle"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = player:WaitForChild("PlayerGui")
+
+button = Instance.new("TextButton")
+button.Name = "TweenToggleButton"
+button.Size = UDim2.new(0, 140, 0, 40)
+button.Position = UDim2.new(0, 20, 0.75, 0)
+button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Text = "KIBA: OFF"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
+button.AutoButtonColor = false
+button.Parent = gui
+
+-- Đổ bóng nhẹ
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+shadow.Position = UDim2.new(0.5, 2, 0.5, 2)
+shadow.Size = UDim2.new(1, 8, 1, 8)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageTransparency = 0.75
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+shadow.ZIndex = button.ZIndex - 1
+shadow.Parent = button
+
+-- Bo góc + viền
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Thickness = 1.5
+stroke.Transparency = 0.6
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = button
+
+-- Kéo
+local dragging, dragInput, dragStart, startPos
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = button.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+button.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Hover & click
+local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+local hoverOn = TweenService:Create(button, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+local hoverOff = TweenService:Create(button, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+local pressEffect = TweenService:Create(button, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+
+button.MouseEnter:Connect(function() hoverOn:Play() end)
+button.MouseLeave:Connect(function() hoverOff:Play() end)
+button.MouseButton1Down:Connect(function() pressEffect:Play() end)
+button.MouseButton1Up:Connect(function()
+	if systemEnabled then hoverOn:Play() else hoverOff:Play() end
+end)
+
+button.MouseButton1Click:Connect(function()
+	setTweenSystemEnabled(not systemEnabled)
+end)
+
+-- Auto setup nếu có sẵn character
+player.CharacterAdded:Connect(function(char)
+	if systemEnabled then
+		setupCharacter(char)
+	end
+end)
+
+if player.Character then
+	setupCharacter(player.Character)
+end
