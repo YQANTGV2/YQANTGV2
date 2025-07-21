@@ -170,10 +170,10 @@ function createSlideButton(text, keyCode, offsetX)
 		if dragging then return end
 		task.spawn(function()
 			Services.VIM:SendKeyEvent(true, keyCode, false, game)
-			task.wait(0.03)
+			task.wait(0.01)
 			Services.VIM:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-			task.wait(0.03)
-			Services.VIM:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                        task.wait(0.01)
+			Services.VIM:SendKeyEvent(false, keyCode, false, game)         -- thả A or D
 		end)
 	end)
 end
