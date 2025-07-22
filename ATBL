@@ -1,0 +1,308 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "DetectGui"
+
+local icon = Instance.new("TextButton", gui)
+icon.Text = "❓"
+icon.Size = UDim2.new(0, 50, 0, 50)
+icon.Position = UDim2.new(0, 10, 0.4, 0)
+icon.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+icon.TextColor3 = Color3.new(1, 1, 1)
+icon.Font = Enum.Font.GothamBold
+icon.TextScaled = true
+icon.Active = true
+icon.Draggable = true
+Instance.new("UICorner", icon).CornerRadius = UDim.new(0, 50)
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 220)
+frame.Position = UDim2.new(0, -300, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local function showFrame()
+	TweenService:Create(frame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 70, 0.4, 0)
+	}):Play()
+end
+
+local function hideFrame()
+	TweenService:Create(frame, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, -300, 0.4, 0)
+	}):Play()
+end
+
+local frameVisible = false
+icon.MouseButton1Click:Connect(function()
+	frameVisible = not frameVisible
+	if frameVisible then
+		showFrame()
+	else
+		hideFrame()
+	end
+end)
+
+local toggleButton = Instance.new("TextButton", frame)
+toggleButton.Size = UDim2.new(0, 230, 0, 40)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Text = "Auto Block: OFF"
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.GothamBold
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 8)
+
+local toggleTextButton = Instance.new("TextButton", frame)
+toggleTextButton.Size = UDim2.new(0, 40, 0, 40)
+toggleTextButton.Position = UDim2.new(0, 250, 0, 10)
+toggleTextButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggleTextButton.Text = "≡"
+toggleTextButton.TextScaled = true
+toggleTextButton.Font = Enum.Font.GothamBold
+toggleTextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", toggleTextButton).CornerRadius = UDim.new(0, 6)
+
+local toggleReduceDelay = Instance.new("TextButton", frame)
+toggleReduceDelay.Size = UDim2.new(0, 230, 0, 40)
+toggleReduceDelay.Position = UDim2.new(0, 10, 0, 60)
+toggleReduceDelay.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleReduceDelay.TextColor3 = Color3.new(1, 1, 1)
+toggleReduceDelay.Text = "M1 After Block: OFF"
+toggleReduceDelay.TextScaled = true
+toggleReduceDelay.Font = Enum.Font.GothamBold
+Instance.new("UICorner", toggleReduceDelay).CornerRadius = UDim.new(0, 8)
+
+local reduceDelay = false
+toggleReduceDelay.MouseButton1Click:Connect(function()
+	reduceDelay = not reduceDelay
+	toggleReduceDelay.Text = reduceDelay and "M1 After Block: ON" or "M1 After Block: OFF"
+	toggleReduceDelay.BackgroundColor3 = reduceDelay and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(50, 50, 50)
+end)
+
+local normalStudBox, specialStudBox, skillStudBox
+local normalStud, specialStud, skillStud = 20, 30, 30
+local showTextboxes = false
+
+local function createTextBox(name, posY, placeholder)
+	local box = Instance.new("TextBox", frame)
+	box.Size = UDim2.new(0, 220, 0, 30)
+	box.Position = UDim2.new(0, 40, 0, posY)
+	box.PlaceholderText = placeholder
+	box.Text = ""
+	box.Visible = false
+	box.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+	box.TextColor3 = Color3.fromRGB(255, 255, 255)
+	box.Font = Enum.Font.Gotham
+	box.TextScaled = true
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+	return box
+end
+
+normalStudBox = createTextBox("normal", 60, "M1")
+specialStudBox = createTextBox("special", 100, "Dash")
+skillStudBox = createTextBox("skill", 140, "Skill")
+
+local function createMinusPlus(parentBox, getSetFunc)
+	local minusBtn = Instance.new("TextButton")
+	minusBtn.Size = UDim2.new(0, 30, 0, 30)
+	minusBtn.Position = UDim2.new(0, -35, 0, 0)
+	minusBtn.Text = "-"
+	minusBtn.TextScaled = true
+	minusBtn.Font = Enum.Font.GothamBold
+	minusBtn.TextColor3 = Color3.new(1, 1, 1)
+	minusBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+	minusBtn.Parent = parentBox
+	Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 4)
+
+	local plusBtn = Instance.new("TextButton")
+	plusBtn.Size = UDim2.new(0, 30, 0, 30)
+	plusBtn.Position = UDim2.new(1, 5, 0, 0)
+	plusBtn.Text = "+"
+	plusBtn.TextScaled = true
+	plusBtn.Font = Enum.Font.GothamBold
+	plusBtn.TextColor3 = Color3.new(1, 1, 1)
+	plusBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 50)
+	plusBtn.Parent = parentBox
+	Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 4)
+
+	plusBtn.MouseButton1Click:Connect(function()
+		local val = getSetFunc()
+		val += 2
+		getSetFunc(val)
+		parentBox.Text = tostring(val)
+	end)
+
+	minusBtn.MouseButton1Click:Connect(function()
+		local val = getSetFunc()
+		val = math.max(0, val - 2)
+		getSetFunc(val)
+		parentBox.Text = tostring(val)
+	end)
+end
+
+createMinusPlus(normalStudBox, function(val)
+	if val then normalStud = val else return normalStud end
+end)
+
+createMinusPlus(specialStudBox, function(val)
+	if val then specialStud = val else return specialStud end
+end)
+
+createMinusPlus(skillStudBox, function(val)
+	if val then skillStud = val else return skillStud end
+end)
+
+normalStudBox.FocusLost:Connect(function()
+	local val = tonumber(normalStudBox.Text)
+	if val then normalStud = val end
+end)
+specialStudBox.FocusLost:Connect(function()
+	local val = tonumber(specialStudBox.Text)
+	if val then specialStud = val end
+end)
+skillStudBox.FocusLost:Connect(function()
+	local val = tonumber(skillStudBox.Text)
+	if val then skillStud = val end
+end)
+
+toggleTextButton.MouseButton1Click:Connect(function()
+	showTextboxes = not showTextboxes
+	normalStudBox.Visible = showTextboxes
+	specialStudBox.Visible = showTextboxes
+	skillStudBox.Visible = showTextboxes
+	toggleButton.Visible = not showTextboxes
+	toggleReduceDelay.Visible = not showTextboxes
+end)
+
+local animationIDs = {
+	10469493270,10469630950,10469639222,10469643643,
+	13532562418,13532600125,13532604085,13294471966,
+	13491635433,13296577783,13295919399,13295936866,
+	13370310513,13390230973,13378751717,13378708199,
+	14004222985,13997092940,14001963401,14136436157,
+	15259161390,15240216931,15240176873,15162694192,
+	16515503507,16515520431,16515448089,16552234590,
+	17889458563,17889461810,17889471098,17889290569,
+	123005629431309,100059874351664,104895379416342
+}
+
+local specialAnimationIDs = {
+	[10479335397] = true, [13380255751] = true, [134775406437626] = true
+}
+
+local skillIDs = {
+	[10468665991]=true,[10466974800]=true,[10471336737]=true,[12510170988]=true,
+	[12272894215]=true,[12296882427]=true,[12307656616]=true,
+	[101588604872680]=true,[105442749844047]=true,[109617620932970]=true,
+	[131820095363270]=true,[135289891173395]=true,[125955606488863]=true,
+	[12534735382]=true,[12502664044]=true,[12509505723]=true,[12618271998]=true,[12684390285]=true,
+	[13376869471]=true,[13294790250]=true,[13376962659]=true,[13501296372]=true,[13556985475]=true,
+	[145162735010]=true,[14046756619]=true,[14299135500]=true,[14351441234]=true,
+	[15290930205]=true,[15145462680]=true,[15295895753]=true,[15295336270]=true,
+	[16139108718]=true,[16515850153]=true,[16431491215]=true,[16597322398]=true,[16597912086]=true,
+	[17799224866]=true,[17838006839]=true,[17857788598]=true,[18179181663]=true,
+	[113166426814229]=true,[116753755471636]=true,[116153572280464]=true,
+	[114095570398448]=true,[77509627104305]=true
+}
+
+local remote34Cooldown = false
+
+local function sendRemote(baseDelay, isSpecial)
+	local char = LocalPlayer.Character
+	if not char then return end
+	local com = char:FindFirstChild("Communicate")
+	if not com then return end
+
+	com:FireServer({["Goal"] = "KeyPress", ["Key"] = Enum.KeyCode.F})
+
+	if isSpecial then
+		task.wait(1.1)
+	else
+		task.wait(baseDelay - 0.0001)
+	end
+
+	com:FireServer({["Goal"] = "KeyRelease", ["Key"] = Enum.KeyCode.F})
+
+	if reduceDelay and not remote34Cooldown then
+		remote34Cooldown = true
+		task.spawn(function()
+			com:FireServer({["Goal"] = "LeftClick", ["Mobile"] = true})
+			task.wait(0.3)
+			com:FireServer({["Goal"] = "LeftClickRelease", ["Mobile"] = true})
+			task.wait(0.55)
+			remote34Cooldown = false
+		end)
+	end
+end
+
+local active = false
+local loopConnection
+local lastRemote = {}
+
+toggleButton.MouseButton1Click:Connect(function()
+	active = not active
+	toggleButton.Text = active and "Auto Block: ON" or "Auto Block: OFF"
+	toggleButton.BackgroundColor3 = active and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(50, 50, 50)
+
+	if loopConnection then loopConnection:Disconnect() end
+	if not active then return end
+
+	loopConnection = RunService.Heartbeat:Connect(function()
+		local myChar = LocalPlayer.Character
+		local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+		local myHead = myChar and myChar:FindFirstChild("Head")
+		if not myRoot or not myHead then return end
+
+		local liveFolder = workspace:FindFirstChild("Live")
+		if not liveFolder then return end
+
+		for _, model in pairs(liveFolder:GetChildren()) do
+			if model:IsA("Model") and model ~= myChar then
+				local human = model:FindFirstChildOfClass("Humanoid")
+				local root = model:FindFirstChild("HumanoidRootPart")
+				if human and root then
+					local direction = (root.Position - myHead.Position).Unit
+					local facing = myHead.CFrame.LookVector
+					local dot = facing:Dot(direction)
+
+					if dot > 0.6 then
+						for _, track in pairs(human:GetPlayingAnimationTracks()) do
+							local anim = track.Animation
+							if anim and anim.AnimationId then
+								local id = tonumber(string.match(anim.AnimationId, "%d+"))
+								if id then
+									local key = tostring(model) .. "_" .. tostring(id)
+									local dist = (myRoot.Position - root.Position).Magnitude
+
+									local inRange, delay = false, 0.6
+									if skillIDs[id] and dist <= skillStud then
+										inRange, delay = true, 1.1
+									elseif specialAnimationIDs[id] and dist <= specialStud then
+										inRange, delay = true, 0.6
+									elseif table.find(animationIDs, id) and dist <= normalStud then
+										inRange = true
+									end
+
+									if inRange and (not lastRemote[key] or tick() - lastRemote[key] >= delay) then
+										lastRemote[key] = tick()
+										task.spawn(function()
+											sendRemote(delay, specialAnimationIDs[id] and true or false)
+										end)
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+end)
