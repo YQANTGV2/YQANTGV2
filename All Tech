@@ -4,11 +4,6 @@ local Window = Library:NewWindow("Auto Tech")
 
 local Section = Window:NewSection("Garou")
  
- Section:CreateButton("Loop Dash", function()
-    print("Clicked: Loop Dash")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Loop%20Dash%20Rework%20Script%20Real"))()
-end)
- 
 -- Bin toàn cc lu trng thái toggle
 _G._AutoTwisted_Enabled = false
 
@@ -767,16 +762,6 @@ end)
 
 local Section = Window:NewSection("Saitama")
 
-Section:CreateButton("M1 Reset", function()
-    print("Clicked: M1 Reset")
-    getgenv().keybinds = {
-        m1reset = Enum.KeyCode.R,
-        emotedash = Enum.KeyCode.T,
-        rotation = Enum.KeyCode.H
-    }
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Slaphello/M1-Reset-And-Emote-Dash-TSB-OLD-/refs/heads/main/M1R%26ED%20TSB"))()
-end)
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local animationId = "rbxassetid://12510170988"
@@ -821,36 +806,6 @@ Section:CreateToggle("UpperCut + Dash", function(state)
 end)
 
 local Section = Window:NewSection("Auto For All Character")
-
-Section:CreateButton("Kai Tech", function()
-print("Clicked")
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Kai"))()
-end)
-
-Section:CreateButton("Upper Punch", function()
-print("Clicked: BackDash (Mobile)")
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV2/YQANTGV2/refs/heads/main/Upper"))()
-end)
-
-Section:CreateButton("BackDash (Mobile)", function()
-    print("Clicked: BackDash (Mobile)")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20Tech"))()
-end)
-
-Section:CreateButton("BackDash (PC)", function()
-    print("Clicked: BackDash (PC)")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/BackDash%20For%20Pc"))()
-end)
-
-Section:CreateButton("Tornado Tech", function()
-    print("Clicked: Tornado Tech")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Idk%20lolololol"))()
-end)
-
-Section:CreateButton("Oreo Rework", function()
-    print("Clicked: Oreo Rework")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kietba/Kietba/refs/heads/main/Oreo%20rework"))()
-end)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
