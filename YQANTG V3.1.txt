@@ -1,31 +1,7 @@
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "GameCheckUI"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-
-local bg = Instance.new("Frame")
-bg.Size = UDim2.new(1, 0, 1, 0)
-bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-bg.BackgroundTransparency = 1
-bg.Parent = gui
-
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0.8, 0, 0.15, 0)
-label.Position = UDim2.new(0.1, 0, 0.4, 0)
-label.BackgroundTransparency = 1
-label.Text = ""
-label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.SemiBold, Enum.FontStyle.Italic)
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.TextTransparency = 1
-label.TextScaled = true
-label.Parent = gui
-
-local stroke = Instance.new("UIStroke", label)
-stroke.Thickness = 2
+local allowedIDs = {
+   [10449761463] = true,
+}
+if allowedIDs[game.PlaceId] then
 
 local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua", true))()
 
@@ -1574,3 +1550,6 @@ local ColorPicker = Tab:CreateColorPicker({
 }, "ColorPicker")
 Tab:BuildConfigSection()
 end)
+else
+   warn("Game not support.")
+end
