@@ -1257,7 +1257,7 @@ local Button = Tab:CreateButton({
 	Name = "Kiba Tech V2",
 	Description = "M1 X3 + Upper Punch",
     	Callback = function()
-         loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV3/YQANTGV3/refs/heads/main/hehehe.txt"))()
+         loadstring(game:HttpGet("https://raw.githubusercontent.com/YQANTGV3/YQANTGV3/refs/heads/main/bruh.txt"))()
     	end
 })
 
