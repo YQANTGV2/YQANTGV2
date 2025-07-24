@@ -76,7 +76,7 @@ local Window = Luna:CreateWindow({
 		ConfigFolder = "Big Hub"
 	},
 
-	KeySystem = true,
+	KeySystem = false,
 	KeySettings = {
 		Title = "YQANTG V3.1 Key",
 		Subtitle = "Key System",
